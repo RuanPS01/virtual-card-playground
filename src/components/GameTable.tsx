@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -78,8 +79,8 @@ const GameTable: React.FC<GameTableProps> = ({
     if (tableRef.current) {
       const rect = tableRef.current.getBoundingClientRect();
       setDropPosition({
-        x: (e.clientX - rect.left) / rect.width,
-        y: (e.clientY - rect.top) / rect.height
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
       });
     }
   };
@@ -118,9 +119,8 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handleCardOptionSelected = (faceUp: boolean) => {
     if (draggedCard && dropPosition && tableRef.current) {
-      const rect = tableRef.current.getBoundingClientRect();
-      const x = dropPosition.x * rect.width;
-      const y = dropPosition.y * rect.height;
+      const x = dropPosition.x;
+      const y = dropPosition.y;
       
       if (draggedCard.sourceType === 'hand') {
         // Mover da mão do jogador para a mesa

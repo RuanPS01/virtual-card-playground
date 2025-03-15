@@ -49,12 +49,15 @@ const TableCard: React.FC<TableCardProps> = ({
       drag
       dragMomentum={false}
     >
-      <Card
-        suit={suit}
-        rank={rank}
-        faceUp={faceUp}
-        onDragStart={handleDragStart}
-      />
+      <div onDragStart={handleDragStart}>
+        <Card
+          suit={suit}
+          rank={rank}
+          faceUp={faceUp}
+          draggable={true}
+          onDragStart={handleDragStart}
+        />
+      </div>
     </motion.div>
   );
 };
