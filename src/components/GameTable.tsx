@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import Card, { Suit, Rank } from './Card';
 import Deck from './Deck';
@@ -67,14 +66,24 @@ const GameTable: React.FC<GameTableProps> = ({
     sourceIndex?: number;
   } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
-  
+
   const currentPlayer = players.find(p => p.id === currentPlayerId);
   const otherPlayers = players.filter(p => p.id !== currentPlayerId);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+
+    // Check if we're dragging over a player hand element
+    const target = e.target as HTMLElement;
+    const isPlayerHand = target.closest('[data-player-area="true"]');
+
+    if (isPlayerHand) {
+      // Don't update table drop position if we're over a player hand
+      return;
+    }
+
     setIsDraggingOver(true);
-    
+
     if (tableRef.current) {
       const rect = tableRef.current.getBoundingClientRect();
       setDropPosition({
@@ -86,64 +95,102 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handleDragLeave = () => {
     setIsDraggingOver(false);
-    setDropPosition(null);
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    
-    if (!dropPosition) return;
-    
+
+    // Check if we're dropping on a player hand element
+    const target = e.target as HTMLElement;
+    const playerHandElement = target.closest('[data-player-area="true"]');
+
+    if (playerHandElement) {
+      // If we're dropping on a player hand, we'll let handlePlayerAreaDrop handle it
+      setIsDraggingOver(false);
+      return;
+    }
+
+    if (!dropPosition) {
+      setIsDraggingOver(false);
+      return;
+    }
+
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      
+
       if (data.type === 'card') {
-        setDraggedCard({
+        // Identify the source type of the card
+        const sourceType = draggedCard?.sourceType || 'deck';
+
+        // Set up the dragged card information
+        const newDraggedCard = {
           suit: data.suit,
           rank: data.rank,
-          sourceType: draggedCard?.sourceType || 'deck',
+          sourceType: sourceType,
           sourceId: draggedCard?.sourceId,
           sourceIndex: draggedCard?.sourceIndex
-        });
-        
-        setShowCardOptions(true);
+        };
+
+        setDraggedCard(newDraggedCard);
+
+        // If the card is already on the table, we don't show the modal
+        // We move the card directly to the new position
+        if (sourceType === 'table') {
+          const card = tableCards.find(c => c.id === newDraggedCard.sourceId);
+          if (card) {
+            onMoveCard(
+              card.id,
+              'table',
+              'table',
+              undefined,
+              card.faceUp,
+              dropPosition.x,
+              dropPosition.y
+            );
+          }
+        } else {
+          // For cards from hand or deck, we show the modal
+          setShowCardOptions(true);
+        }
       }
     } catch (error) {
       console.error('Error parsing drag data:', error);
     }
-    
+
     setIsDraggingOver(false);
-    setDropPosition(null);
   };
 
   const handleCardOptionSelected = (faceUp: boolean) => {
     if (draggedCard && dropPosition && tableRef.current) {
       const x = dropPosition.x;
       const y = dropPosition.y;
-      
+
       if (draggedCard.sourceType === 'hand') {
-        // Mover da mão do jogador para a mesa
+        // Move from player's hand to the table
         const card = currentPlayer?.cards[draggedCard.sourceIndex || 0];
         if (card) {
           onMoveCard(card.id, 'hand', 'table', undefined, faceUp, x, y);
         }
       } else if (draggedCard.sourceType === 'deck') {
-        // Mover do deck para a mesa
+        // Move from deck to the table
         onMoveCard('top-card', 'deck', 'table', undefined, faceUp, x, y);
       } else if (draggedCard.sourceType === 'table') {
-        // Mover da mesa para outra posição na mesa
+        // Move from the table to another position on the table
         const card = tableCards.find(c => c.id === draggedCard.sourceId);
         if (card) {
           onMoveCard(card.id, 'table', 'table', undefined, faceUp, x, y);
         }
       }
     }
-    
+
     setShowCardOptions(false);
     setDraggedCard(null);
+    setDropPosition(null);
   };
 
   const handleDeckCardDrag = (e: React.DragEvent<HTMLDivElement>) => {
+    if (deckCards.length === 0) return;
+
     setDraggedCard({
       suit: deckCards[deckCards.length - 1].suit,
       rank: deckCards[deckCards.length - 1].rank,
@@ -153,7 +200,7 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handleHandCardDrag = (e: React.DragEvent<HTMLDivElement>, cardIndex: number) => {
     if (!currentPlayer) return;
-    
+
     const card = currentPlayer.cards[cardIndex];
     setDraggedCard({
       id: card.id,
@@ -176,28 +223,29 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handlePlayerAreaDrop = (playerId: string, e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    
+    e.stopPropagation(); // Prevent the event from bubbling up to the table's drop handler
+
     if (!draggedCard) return;
-    
+
     try {
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      
+
       if (data.type === 'card') {
         if (draggedCard.sourceType === 'deck') {
-          // Mover do deck diretamente para a mão do jogador
+          // Move from deck directly to player's hand
           onMoveCard('top-card', 'deck', 'hand', playerId, true);
         } else if (draggedCard.sourceType === 'table') {
-          // Mover da mesa para a mão do jogador
+          // Move from table to player's hand
           const card = tableCards.find(c => c.id === draggedCard.sourceId);
           if (card) {
             onMoveCard(card.id, 'table', 'hand', playerId, true);
           }
         } else if (draggedCard.sourceType === 'hand' && draggedCard.sourceId !== playerId) {
-          // Mover da mão de um jogador para a mão de outro
+          // Move from one player's hand to another's
           const card = players
             .find(p => p.id === draggedCard.sourceId)
             ?.cards[draggedCard.sourceIndex || 0];
-            
+
           if (card) {
             onMoveCard(card.id, 'hand', 'hand', playerId, true);
           }
@@ -206,14 +254,15 @@ const GameTable: React.FC<GameTableProps> = ({
     } catch (error) {
       console.error('Error handling player area drop:', error);
     }
-    
+
     setDraggedCard(null);
+    setDropPosition(null);
   };
 
   const getPlayerPosition = (position: number, totalPlayers: number) => {
     const angle = (position / totalPlayers) * 2 * Math.PI;
-    const radius = 42; // % do container
-    
+    const radius = 42; // % of container
+
     return {
       left: `${50 + radius * Math.cos(angle)}%`,
       top: `${50 + radius * Math.sin(angle)}%`,
@@ -222,11 +271,10 @@ const GameTable: React.FC<GameTableProps> = ({
 
   return (
     <div className="relative w-full h-full">
-      <motion.div 
+      <motion.div
         ref={tableRef}
         className={cn(
-          "table-felt relative w-full h-full rounded-3xl overflow-hidden shadow-xl",
-          isDraggingOver && "border-4 border-yellow-300"
+          "table-felt relative w-full h-full rounded-3xl overflow-hidden shadow-xl"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -250,27 +298,31 @@ const GameTable: React.FC<GameTableProps> = ({
             />
           ))}
         </AnimatePresence>
-        
+
         {/* Central Deck */}
         <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <Deck 
+          <Deck
             cards={deckCards}
             onCardDragStart={handleDeckCardDrag}
             onDeckClick={() => onDealCard(currentPlayerId)}
             onDeckShuffle={onShuffleDeck}
           />
         </div>
-        
+
         {/* Other Players */}
         {otherPlayers.map((player) => {
           const position = getPlayerPosition(player.position, players.length);
-          
+
           return (
-            <div 
+            <div
               key={player.id}
               className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
               style={position}
-              onDragOver={(e) => e.preventDefault()}
+              data-player-area="true"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation(); // Stop propagation to prevent table drag over
+              }}
               onDrop={(e) => handlePlayerAreaDrop(player.id, e)}
             >
               <PlayerHand
@@ -282,12 +334,16 @@ const GameTable: React.FC<GameTableProps> = ({
             </div>
           );
         })}
-        
+
         {/* Current Player */}
         {currentPlayer && (
-          <div 
+          <div
             className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20"
-            onDragOver={(e) => e.preventDefault()}
+            data-player-area="true"
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation(); // Stop propagation to prevent table drag over
+            }}
             onDrop={(e) => handlePlayerAreaDrop(currentPlayer.id, e)}
           >
             <PlayerHand
@@ -295,14 +351,14 @@ const GameTable: React.FC<GameTableProps> = ({
               isCurrentPlayer={true}
               playerName={`${currentPlayer.name} (Você)`}
               onCardDragStart={handleHandCardDrag}
-              onReorderCards={(startIndex, endIndex) => 
+              onReorderCards={(startIndex, endIndex) =>
                 onReorderPlayerCards(currentPlayer.id, startIndex, endIndex)
               }
               className="w-96"
             />
           </div>
         )}
-        
+
         {/* Game Controls */}
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           <motion.button
@@ -313,14 +369,14 @@ const GameTable: React.FC<GameTableProps> = ({
             title="Adicionar baralho"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 11h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z"/>
-              <path d="M17 17v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"/>
-              <path d="M14 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8"/>
-              <path d="M14 14h-3v3"/>
-              <path d="M11 17h3"/>
+              <path d="M17 11h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z" />
+              <path d="M17 17v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
+              <path d="M14 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8" />
+              <path d="M14 14h-3v3" />
+              <path d="M11 17h3" />
             </svg>
           </motion.button>
-          
+
           <motion.button
             className="p-3 bg-white rounded-full shadow-md"
             whileHover={{ scale: 1.05 }}
@@ -329,14 +385,14 @@ const GameTable: React.FC<GameTableProps> = ({
             title="Remover cartas"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
-              <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z"/>
-              <line x1="9" y1="9" x2="10" y2="9"/>
-              <line x1="9" y1="13" x2="15" y2="13"/>
-              <line x1="9" y1="17" x2="15" y2="17"/>
+              <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+              <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
+              <line x1="9" y1="9" x2="10" y2="9" />
+              <line x1="9" y1="13" x2="15" y2="13" />
+              <line x1="9" y1="17" x2="15" y2="17" />
             </svg>
           </motion.button>
-          
+
           <motion.button
             className="p-3 bg-white rounded-full shadow-md"
             whileHover={{ scale: 1.05 }}
@@ -345,13 +401,13 @@ const GameTable: React.FC<GameTableProps> = ({
             title="Reiniciar jogo"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-              <path d="M3 3v5h5"/>
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
             </svg>
           </motion.button>
         </div>
       </motion.div>
-      
+
       {/* Card Face Up/Down Dialog */}
       <Dialog open={showCardOptions} onOpenChange={setShowCardOptions}>
         <DialogContent className="sm:max-w-md">
@@ -359,36 +415,36 @@ const GameTable: React.FC<GameTableProps> = ({
             <DialogTitle>Como deseja colocar a carta?</DialogTitle>
           </DialogHeader>
           <div className="flex justify-center gap-8 my-4">
-            <motion.div 
+            <motion.div
               className="text-center cursor-pointer"
               whileHover={{ scale: 1.05 }}
               onClick={() => handleCardOptionSelected(false)}
             >
               {draggedCard && (
                 <div className="mb-2">
-                  <Card 
-                    suit={draggedCard.suit} 
-                    rank={draggedCard.rank} 
-                    faceUp={false} 
-                    draggable={false} 
+                  <Card
+                    suit={draggedCard.suit}
+                    rank={draggedCard.rank}
+                    faceUp={false}
+                    draggable={false}
                   />
                 </div>
               )}
               <Button variant="outline">Virada para baixo</Button>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="text-center cursor-pointer"
               whileHover={{ scale: 1.05 }}
               onClick={() => handleCardOptionSelected(true)}
             >
               {draggedCard && (
                 <div className="mb-2">
-                  <Card 
-                    suit={draggedCard.suit} 
-                    rank={draggedCard.rank} 
-                    faceUp={true} 
-                    draggable={false} 
+                  <Card
+                    suit={draggedCard.suit}
+                    rank={draggedCard.rank}
+                    faceUp={true}
+                    draggable={false}
                   />
                 </div>
               )}
