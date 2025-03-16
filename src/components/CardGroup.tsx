@@ -1,7 +1,6 @@
-// Assegure-se que seu CardGroup.tsx está assim:
-
 import React from 'react';
 import { motion } from 'framer-motion';
+import { GripVertical } from 'lucide-react';
 import Card, { Suit, Rank } from './Card';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +26,7 @@ interface CardGroupProps {
     mode: 'fan' | 'stack';
     onDragStart: (cardId: string, suit: Suit, rank: Rank) => void;
     groupId: string;
-    onRemoveCard?: (groupId: string, cardIndex: number) => void; // Add this line
+    onRemoveCard?: (groupId: string, cardIndex: number) => void;
 }
 
 const CardGroup: React.FC<CardGroupProps> = ({
@@ -71,6 +70,26 @@ const CardGroup: React.FC<CardGroupProps> = ({
         setLastClickedCard(index);
     };
 
+    // Calcula a posição do botão de arrasto com base no modo e no número de cartas
+    const getHandlePosition = () => {
+        if (mode === 'fan') {
+            const lastCardOffset = (cards.length - 1) * 25;
+            const lastCardYOffset = (cards.length - 1) * 5;
+            return {
+                x: lastCardOffset + 10, // Posicionar após a última carta
+                y: lastCardYOffset + 140 // Posicionar na parte inferior do grupo
+            };
+        } else {
+            // Modo stack
+            return {
+                x: 10, // Centralizar no grupo
+                y: 140 // Posicionar na parte inferior
+            };
+        }
+    };
+
+    const handlePosition = getHandlePosition();
+
     return (
         <motion.div
             className="absolute"
@@ -97,12 +116,23 @@ const CardGroup: React.FC<CardGroupProps> = ({
             layoutId={groupId}
             drag
             dragMomentum={false}
+            onDragEnd={(e, info) => {
+                // Disparar evento para atualizar a posição no Firebase
+                const event = new CustomEvent('cardgroup-moved', {
+                    detail: {
+                        groupId: groupId,
+                        x: x + info.offset.x,
+                        y: y + info.offset.y
+                    }
+                });
+                window.dispatchEvent(event);
+            }}
         >
             <div className={cn("relative")}>
                 {cards.map((card, index) => {
                     const offset = mode === 'fan'
                         ? { x: index * 25, y: index * 5, rotate: index * 5 }
-                        : { x: index * 2, y: index * 2 };
+                        : { x: index * 2, y: index * 2, rotate: 0 };
 
                     return (
                         <div
@@ -128,6 +158,20 @@ const CardGroup: React.FC<CardGroupProps> = ({
                         </div>
                     );
                 })}
+
+                {/* Botão de arrasto para reposicionar o grupo */}
+                <motion.div
+                    className="absolute flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-md cursor-move z-50"
+                    style={{
+                        left: handlePosition.x,
+                        top: handlePosition.y
+                    }}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    title="Arraste para mover o grupo"
+                >
+                    <GripVertical size={18} className="text-gray-600" />
+                </motion.div>
             </div>
         </motion.div>
     );

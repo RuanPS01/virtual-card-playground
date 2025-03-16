@@ -1,12 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 import Card, { Suit, Rank } from './Card';
 import Deck from './Deck';
 import PlayerHand from './PlayerHand';
 import TableCard from './TableCard';
 import CardGroup, { GroupedCard, CardGroupType } from './CardGroup';
 import CardStackModeDialog from './CardStackModeDialog';
+import ConfirmDialog from './ConfirmDialog';
 import { cn } from '@/lib/utils';
 
 export interface Player {
@@ -75,6 +83,10 @@ const GameTable: React.FC<GameTableProps> = ({
     sourceId?: string;
     sourceIndex?: number;
   } | null>(null);
+
+  // Estado para modais de confirmação
+  const [showAddDeckConfirm, setShowAddDeckConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Estado para o modal de escolha entre leque e pilha
   const [showStackOptions, setShowStackOptions] = useState(false);
@@ -578,52 +590,72 @@ const GameTable: React.FC<GameTableProps> = ({
           </div>
         )}
 
-        {/* Game Controls */}
+        {/* Game Controls with Tooltips */}
         <div className="absolute top-4 right-4 flex flex-col gap-2">
-          <motion.button
-            className="p-3 bg-white rounded-full shadow-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onAddDeck}
-            title="Adicionar baralho"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 11h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z" />
-              <path d="M17 17v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
-              <path d="M14 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8" />
-              <path d="M14 14h-3v3" />
-              <path d="M11 17h3" />
-            </svg>
-          </motion.button>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  className="p-3 bg-white rounded-full shadow-md"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowAddDeckConfirm(true)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 11h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2Z" />
+                    <path d="M17 17v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2" />
+                    <path d="M14 10V4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8" />
+                    <path d="M14 14h-3v3" />
+                    <path d="M11 17h3" />
+                  </svg>
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Adicionar baralho</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <motion.button
-            className="p-3 bg-white rounded-full shadow-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onRemoveCardsDialog}
-            title="Remover cartas"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 3v4a1 1 0 0 0 1 1h4" />
-              <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
-              <line x1="9" y1="9" x2="10" y2="9" />
-              <line x1="9" y1="13" x2="15" y2="13" />
-              <line x1="9" y1="17" x2="15" y2="17" />
-            </svg>
-          </motion.button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  className="p-3 bg-white rounded-full shadow-md"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={onRemoveCardsDialog}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 3v4a1 1 0 0 0 1 1h4" />
+                    <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2Z" />
+                    <line x1="9" y1="9" x2="10" y2="9" />
+                    <line x1="9" y1="13" x2="15" y2="13" />
+                    <line x1="9" y1="17" x2="15" y2="17" />
+                  </svg>
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Remover cartas</p>
+              </TooltipContent>
+            </Tooltip>
 
-          <motion.button
-            className="p-3 bg-white rounded-full shadow-md"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onResetGame}
-            title="Reiniciar jogo"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
-          </motion.button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  className="p-3 bg-white rounded-full shadow-md"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowResetConfirm(true)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                  </svg>
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Reiniciar jogo</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </motion.div>
 
@@ -690,6 +722,33 @@ const GameTable: React.FC<GameTableProps> = ({
           mousePosition={mousePosition}
         />
       )}
+
+      {/* Confirmation dialogs */}
+      <ConfirmDialog
+        open={showAddDeckConfirm}
+        onOpenChange={setShowAddDeckConfirm}
+        title="Adicionar novo baralho"
+        description="Tem certeza que deseja adicionar um novo baralho completo à mesa?"
+        confirmText="Adicionar"
+        cancelText="Cancelar"
+        onConfirm={() => {
+          onAddDeck();
+          setShowAddDeckConfirm(false);
+        }}
+      />
+
+      <ConfirmDialog
+        open={showResetConfirm}
+        onOpenChange={setShowResetConfirm}
+        title="Reiniciar jogo"
+        description="Tem certeza que deseja reiniciar o jogo? Todas as cartas retornarão ao baralho."
+        confirmText="Reiniciar"
+        cancelText="Cancelar"
+        onConfirm={() => {
+          onResetGame();
+          setShowResetConfirm(false);
+        }}
+      />
     </div>
   );
 };
