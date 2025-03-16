@@ -43,9 +43,9 @@ interface GameTableProps {
 
 const GameTable: React.FC<GameTableProps> = ({
   currentPlayerId,
-  players,
-  deckCards,
-  tableCards,
+  players = [], // Fornecer um valor padrão para evitar undefined
+  deckCards = [], // Fornecer um valor padrão para evitar undefined
+  tableCards = [], // Fornecer um valor padrão para evitar undefined
   onDealCard,
   onShuffleDeck,
   onResetGame,
@@ -68,8 +68,13 @@ const GameTable: React.FC<GameTableProps> = ({
   } | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const currentPlayer = players.find(p => p.id === currentPlayerId);
-  const otherPlayers = players.filter(p => p.id !== currentPlayerId);
+  // Verificação de segurança para evitar erro quando currentPlayerId não é encontrado
+  const currentPlayer = players.find(p => p.id === currentPlayerId) || null;
+
+  // Verificação de segurança para evitar erro quando players é undefined
+  const otherPlayers = currentPlayer
+    ? players.filter(p => p.id !== currentPlayerId)
+    : [];
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -169,9 +174,9 @@ const GameTable: React.FC<GameTableProps> = ({
       const x = dropPosition.x;
       const y = dropPosition.y;
 
-      if (draggedCard.sourceType === 'hand') {
+      if (draggedCard.sourceType === 'hand' && currentPlayer) {
         // Move from player's hand to the table
-        const card = currentPlayer?.cards[draggedCard.sourceIndex || 0];
+        const card = currentPlayer.cards[draggedCard.sourceIndex || 0];
         if (card) {
           onMoveCard(card.id, 'hand', 'table', undefined, faceUp, x, y);
         }
@@ -246,12 +251,12 @@ const GameTable: React.FC<GameTableProps> = ({
           }
         } else if (draggedCard.sourceType === 'hand' && draggedCard.sourceId !== playerId) {
           // Move from one player's hand to another's
-          const card = players
-            .find(p => p.id === draggedCard.sourceId)
-            ?.cards[draggedCard.sourceIndex || 0];
-
-          if (card) {
-            onMoveCard(card.id, 'hand', 'hand', playerId, true);
+          const sourcePlayer = players.find(p => p.id === draggedCard.sourceId);
+          if (sourcePlayer && typeof draggedCard.sourceIndex === 'number') {
+            const card = sourcePlayer.cards[draggedCard.sourceIndex];
+            if (card) {
+              onMoveCard(card.id, 'hand', 'hand', playerId, true);
+            }
           }
         }
       }
@@ -263,15 +268,52 @@ const GameTable: React.FC<GameTableProps> = ({
     setDropPosition(null);
   };
 
-  const getPlayerPosition = (position: number, totalPlayers: number) => {
-    const angle = (position / totalPlayers) * 2 * Math.PI;
-    const radius = 42; // % of container
+  // Posicionamento estratégico dos jogadores em torno da mesa
+  const getPlayerPositions = (players: Player[]) => {
+    const positions: Record<string, { left: string, top: string }> = {};
 
-    return {
-      left: `${50 + radius * Math.cos(angle)}%`,
-      top: `${50 + radius * Math.sin(angle)}%`,
-    };
+    // Total de jogadores excluindo o atual
+    const otherPlayerCount = players.length - 1;
+
+    if (otherPlayerCount === 0) {
+      return positions;
+    }
+
+    // Definir posições apenas para os lados e topo
+    // Evitando a parte inferior onde fica o jogador atual
+    players.forEach(player => {
+      if (player.id === currentPlayerId) {
+        // Jogador atual já está posicionado na parte inferior
+        return;
+      }
+
+      // Calcular a posição baseada no índice do jogador
+      // Distribuir entre: topo-esquerda, topo, topo-direita, direita, esquerda
+      const index = player.position % 5;
+
+      switch (index) {
+        case 0: // topo-esquerda
+          positions[player.id] = { left: '15%', top: '15%' };
+          break;
+        case 1: // topo
+          positions[player.id] = { left: '50%', top: '10%' };
+          break;
+        case 2: // topo-direita
+          positions[player.id] = { left: '85%', top: '15%' };
+          break;
+        case 3: // direita
+          positions[player.id] = { left: '85%', top: '40%' };
+          break;
+        case 4: // esquerda
+          positions[player.id] = { left: '15%', top: '40%' };
+          break;
+      }
+    });
+
+    return positions;
   };
+
+  const playerPositions = getPlayerPositions(players);
 
   return (
     <div className="relative w-full h-full">
@@ -315,13 +357,18 @@ const GameTable: React.FC<GameTableProps> = ({
 
         {/* Other Players */}
         {otherPlayers.map((player) => {
-          const position = getPlayerPosition(player.position, players.length);
+          const position = playerPositions[player.id];
+
+          if (!position) return null;
 
           return (
             <div
               key={player.id}
               className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
-              style={position}
+              style={{
+                left: position.left,
+                top: position.top,
+              }}
               data-player-area="true"
               onDragOver={(e) => {
                 e.preventDefault();

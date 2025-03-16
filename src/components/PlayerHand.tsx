@@ -14,7 +14,7 @@ interface PlayerHandProps {
 }
 
 const PlayerHand: React.FC<PlayerHandProps> = ({
-  cards,
+  cards = [], // Fornecer um valor padrão para evitar erros
   isCurrentPlayer,
   playerName,
   onCardDragStart,
@@ -54,6 +54,8 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
   // Lidar com início do arrasto
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    if (index < 0 || index >= cards.length) return;
+
     // Definir dados completos para transferência (incluindo suit e rank para visualização)
     e.dataTransfer.setData('application/json', JSON.stringify({
       type: 'card',
@@ -180,7 +182,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
   // Função auxiliar para calcular as posições das cartas
   const calculateCardPositions = () => {
-    if (!cardsContainerRef.current) return Array(cards.length).fill(0);
+    if (!cardsContainerRef.current || cards.length === 0) return [];
 
     // Calcular espaçamento básico
     let spacing = getCardSpacing();
@@ -252,13 +254,15 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
           className="flex items-center justify-center relative w-full h-28"
         >
           {/* Indicador de posição para arrasto */}
-          {draggingIndex !== null && dragOverIndex !== null && isCurrentPlayer && (
+          {draggingIndex !== null && dragOverIndex !== null && isCurrentPlayer && cards.length > 0 && (
             <motion.div
               className="absolute h-28 w-1 bg-blue-500 rounded-full opacity-70 z-50"
               style={{
                 left: (() => {
                   const positions = calculateCardPositions();
                   const idx = Math.min(Math.max(0, dragOverIndex), positions.length);
+
+                  if (positions.length === 0) return "50%";
 
                   if (idx === 0) {
                     return `${positions[0] - 5}px`;
@@ -279,7 +283,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
             {cards.map((card, index) => {
               const isBeingDragged = index === draggingIndex;
               const positions = calculateCardPositions();
-              const left = positions[index];
+              const left = positions[index] || 0;
 
               return (
                 <motion.div
