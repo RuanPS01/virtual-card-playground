@@ -57,6 +57,7 @@ const GameTable: React.FC<GameTableProps> = ({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dropPosition, setDropPosition] = useState<{ x: number, y: number } | null>(null);
   const [showCardOptions, setShowCardOptions] = useState(false);
+  const [mousePosition, setMousePosition] = useState<{ x: number, y: number } | null>(null);
   const [draggedCard, setDraggedCard] = useState<{
     id?: string;
     suit: Suit;
@@ -132,6 +133,9 @@ const GameTable: React.FC<GameTableProps> = ({
         };
 
         setDraggedCard(newDraggedCard);
+
+        // Store the current mouse position for the dialog
+        setMousePosition({ x: e.clientX, y: e.clientY });
 
         // If the card is already on the table, we don't show the modal
         // We move the card directly to the new position
@@ -410,11 +414,19 @@ const GameTable: React.FC<GameTableProps> = ({
 
       {/* Card Face Up/Down Dialog */}
       <Dialog open={showCardOptions} onOpenChange={setShowCardOptions}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent
+          className="w-100 absolute p-4"
+          style={{
+            position: 'fixed',
+            top: mousePosition ? `${mousePosition.y}px` : '50%',
+            left: mousePosition ? `${mousePosition.x}px` : '50%',
+            transform: mousePosition ? 'translate(-50%, -80%)' : 'translate(-50%, -50%)'
+          }}
+        >
           <DialogHeader>
-            <DialogTitle>Como deseja colocar a carta?</DialogTitle>
+            <DialogTitle>Virada para baixo?</DialogTitle>
           </DialogHeader>
-          <div className="flex justify-center gap-8 my-4">
+          <div className="flex justify-center gap-4">
             <motion.div
               className="text-center cursor-pointer"
               whileHover={{ scale: 1.05 }}
@@ -430,7 +442,6 @@ const GameTable: React.FC<GameTableProps> = ({
                   />
                 </div>
               )}
-              <Button variant="outline">Virada para baixo</Button>
             </motion.div>
 
             <motion.div
@@ -448,7 +459,6 @@ const GameTable: React.FC<GameTableProps> = ({
                   />
                 </div>
               )}
-              <Button>Virada para cima</Button>
             </motion.div>
           </div>
         </DialogContent>
