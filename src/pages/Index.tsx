@@ -13,7 +13,9 @@ import {
   removeCardsBySuit,
   reorderCards
 } from '@/utils/cardUtils';
-import { firebaseService } from '@/lib/firebase';
+import { firebaseService, GameSession } from '@/lib/firebase';
+import { CardGroupType, GroupedCard } from '@/components/CardGroup';
+import { v4 as uuidv4 } from 'uuid';
 
 const Index = () => {
   const [isInRoom, setIsInRoom] = useState(false);
@@ -23,6 +25,7 @@ const Index = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [deckCards, setDeckCards] = useState<CardType[]>([]);
   const [tableCards, setTableCards] = useState<Array<CardType & { x: number, y: number }>>([]);
+  const [cardGroups, setCardGroups] = useState<CardGroupType[]>([]);
   const [showRemoveCardsDialog, setShowRemoveCardsDialog] = useState(false);
 
   // Effect to register disconnect handler
@@ -53,6 +56,7 @@ const Index = () => {
       setPlayers(gameState.players);
       setDeckCards(gameState.deckCards);
       setTableCards(gameState.tableCards);
+      setCardGroups(gameState.cardGroups || []);
     });
 
     return () => unsubscribe();
@@ -66,6 +70,203 @@ const Index = () => {
       return state;
     });
   };
+
+  // Verifique se está realmente encontrando as cartas na mesa
+  const handleCreateCardGroup = async (cardIds: string[], x: number, y: number, mode: 'fan' | 'stack') => {
+    console.log("handleCreateCardGroup called with:", cardIds, x, y, mode);
+
+    const success = await updateGameState(state => {
+      // Garantir que cardGroups exista
+      if (!state.cardGroups) state.cardGroups = [];
+
+      // Array para armazenar as cartas que serão agrupadas
+      const groupCards: GroupedCard[] = [];
+
+      // Nova lista de cartas na mesa (sem as que serão agrupadas)
+      const newTableCards = [...(state.tableCards || [])];
+
+      // Para debugar
+      console.log("Table cards before:", JSON.stringify(newTableCards));
+
+      // Para cada id de carta
+      for (const cardId of cardIds) {
+        // Encontrar a carta na mesa
+        const cardIndex = newTableCards.findIndex(c => c.id === cardId);
+
+        if (cardIndex >= 0) {
+          // Remover a carta da mesa e adicioná-la ao grupo
+          const card = newTableCards.splice(cardIndex, 1)[0];
+          groupCards.push({
+            id: card.id,
+            suit: card.suit,
+            rank: card.rank,
+            faceUp: card.faceUp
+          });
+        } else if (cardId === 'top-card' && state.deckCards.length > 0) {
+          // Caso especial para carta do baralho
+          const topCard = state.deckCards[state.deckCards.length - 1];
+          state.deckCards = state.deckCards.slice(0, -1);
+
+          groupCards.push({
+            id: uuidv4(),
+            suit: topCard.suit,
+            rank: topCard.rank,
+            faceUp: true
+          });
+        }
+      }
+
+      // Para debugar
+      console.log("Cards found for grouping:", JSON.stringify(groupCards));
+      console.log("Table cards after removal:", JSON.stringify(newTableCards));
+
+      if (groupCards.length > 0) {
+        // Criar o novo grupo
+        const newGroup: CardGroupType = {
+          id: uuidv4(),
+          cards: groupCards,
+          x,
+          y,
+          mode
+        };
+
+        // Para debugar
+        console.log("New group created:", JSON.stringify(newGroup));
+        console.log("Current cardGroups:", JSON.stringify(state.cardGroups));
+
+        // Adicionar o grupo à lista
+        state.cardGroups = [...state.cardGroups, newGroup];
+        state.tableCards = newTableCards;
+
+        // Para debugar
+        console.log("Updated cardGroups:", JSON.stringify(state.cardGroups));
+        console.log("Updated tableCards:", JSON.stringify(state.tableCards));
+      }
+
+      return state;
+    });
+
+    if (success) {
+      toast.success('Cartas agrupadas com sucesso!');
+    } else {
+      toast.error('Erro ao agrupar cartas');
+    }
+  };
+
+  const handleAddCardToGroup = async (groupId: string, cardId: string) => {
+    console.log("Tentando adicionar carta", cardId, "ao grupo", groupId);
+
+    const success = await updateGameState(state => {
+      // Garantir que cardGroups existe
+      if (!state.cardGroups) {
+        console.log("Nenhum grupo de cartas encontrado");
+        return state;
+      }
+
+      // Encontrar o grupo
+      const groupIndex = state.cardGroups.findIndex(g => g.id === groupId);
+      if (groupIndex < 0) {
+        console.log("Grupo não encontrado:", groupId);
+        return state;
+      }
+
+      // Nova lista de cartas na mesa (sem a que será agrupada)
+      const newTableCards = [...(state.tableCards || [])];
+
+      // Encontrar a carta na mesa
+      const cardIndex = newTableCards.findIndex(c => c.id === cardId);
+
+      if (cardIndex < 0) {
+        console.log("Carta não encontrada na mesa:", cardId);
+        return state;
+      }
+
+      // Remover a carta da mesa e adicioná-la ao grupo
+      const card = newTableCards.splice(cardIndex, 1)[0];
+      const cardToAdd: GroupedCard = {
+        id: card.id,
+        suit: card.suit,
+        rank: card.rank,
+        faceUp: card.faceUp
+      };
+
+      // Criar uma cópia do grupo e adicionar a nova carta
+      const updatedGroup = {
+        ...state.cardGroups[groupIndex],
+        cards: [...state.cardGroups[groupIndex].cards, cardToAdd]
+      };
+
+      // Atualizar o array de grupos
+      const updatedGroups = [...state.cardGroups];
+      updatedGroups[groupIndex] = updatedGroup;
+
+      return {
+        ...state,
+        cardGroups: updatedGroups,
+        tableCards: newTableCards
+      };
+    });
+
+    if (success) {
+      toast.success('Carta adicionada ao grupo');
+    } else {
+      toast.error('Erro ao adicionar carta ao grupo');
+    }
+  };
+
+  // Handle removing a card from a group
+  const handleRemoveCardFromGroup = async (groupId: string, cardIndex: number, x?: number, y?: number) => {
+    console.log("Removendo carta", cardIndex, "do grupo", groupId, "para posição", x, y);
+
+    const success = await updateGameState(state => {
+      // Verificações existentes...
+
+      // Criar uma cópia profunda do estado
+      const newState = JSON.parse(JSON.stringify(state));
+
+      // Encontrar o grupo
+      const groupIndex = newState.cardGroups.findIndex(g => g.id === groupId);
+      if (groupIndex < 0) return state;
+
+      const group = newState.cardGroups[groupIndex];
+
+      // Verificar se o índice da carta é válido
+      if (cardIndex < 0 || cardIndex >= group.cards.length) return state;
+
+      // Remover a carta do grupo
+      const removedCard = { ...group.cards[cardIndex] };
+      group.cards.splice(cardIndex, 1);
+
+      // Se o grupo ficar vazio, remover o grupo
+      if (group.cards.length === 0) {
+        newState.cardGroups.splice(groupIndex, 1);
+      }
+
+      // Adicionar a carta à mesa na posição especificada
+      // Se não for especificada, usar a posição do grupo com um pequeno deslocamento
+      const newTableCard = {
+        id: removedCard.id,
+        suit: removedCard.suit,
+        rank: removedCard.rank,
+        faceUp: removedCard.faceUp,
+        x: x !== undefined ? x : group.x + 20,
+        y: y !== undefined ? y : group.y + 20
+      };
+
+      if (!newState.tableCards) {
+        newState.tableCards = [];
+      }
+
+      newState.tableCards.push(newTableCard);
+
+      return newState;
+    });
+
+    if (success) {
+      toast.success('Carta removida do grupo');
+    }
+  };
+
 
   // Handler for creating a new room
   const handleCreateRoom = async (playerName: string) => {
@@ -160,6 +361,12 @@ const Index = () => {
       const playerIndex = state.players.findIndex(p => p.id === playerId);
 
       if (playerIndex >= 0) {
+        // Garantir que o jogador tem um array de cartas inicializado
+        if (!state.players[playerIndex].cards) {
+          state.players[playerIndex].cards = [];
+        }
+
+        // Agora é seguro adicionar a carta
         state.players[playerIndex].cards.push({ ...card, faceUp: true });
       }
 
@@ -588,6 +795,7 @@ const Index = () => {
           players={players}
           deckCards={deckCards}
           tableCards={tableCards}
+          cardGroups={cardGroups}
           onDealCard={handleDealCard}
           onShuffleDeck={handleShuffleDeck}
           onResetGame={handleResetGame}
@@ -595,6 +803,9 @@ const Index = () => {
           onRemoveCardsDialog={() => setShowRemoveCardsDialog(true)}
           onMoveCard={handleMoveCard}
           onReorderPlayerCards={handleReorderPlayerCards}
+          onCreateCardGroup={handleCreateCardGroup}
+          onRemoveCardFromGroup={handleRemoveCardFromGroup}
+          onAddCardToGroup={handleAddCardToGroup}
         />
       </div>
 

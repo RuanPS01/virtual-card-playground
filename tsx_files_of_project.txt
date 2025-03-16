@@ -150,7 +150,239 @@ export const Card: React.FC<CardProps> = ({
 };
 
 export default Card;
+// Assegure-se que seu CardGroup.tsx está assim:
 
+import React from 'react';
+import { motion } from 'framer-motion';
+import Card, { Suit, Rank } from './Card';
+import { cn } from '@/lib/utils';
+
+export interface GroupedCard {
+    id: string;
+    suit: Suit;
+    rank: Rank;
+    faceUp: boolean;
+}
+
+export interface CardGroupType {
+    id: string;
+    cards: GroupedCard[];
+    x: number;
+    y: number;
+    mode: 'fan' | 'stack';
+}
+
+interface CardGroupProps {
+    cards: GroupedCard[];
+    x: number;
+    y: number;
+    mode: 'fan' | 'stack';
+    onDragStart: (cardId: string, suit: Suit, rank: Rank) => void;
+    groupId: string;
+    onRemoveCard?: (groupId: string, cardIndex: number) => void; // Add this line
+}
+
+const CardGroup: React.FC<CardGroupProps> = ({
+    cards,
+    x,
+    y,
+    mode,
+    onDragStart,
+    groupId,
+    onRemoveCard
+}) => {
+    const [rotation] = React.useState(() => Math.random() * 20 - 10);
+    const [lastClickTime, setLastClickTime] = React.useState<number>(0);
+    const [lastClickedCard, setLastClickedCard] = React.useState<number>(-1);
+
+    const handleDragStart = (e: React.DragEvent<HTMLDivElement>, card: GroupedCard, index: number) => {
+        e.dataTransfer.setData('application/json', JSON.stringify({
+            type: 'card',
+            id: card.id,
+            suit: card.suit,
+            rank: card.rank,
+            faceUp: card.faceUp,
+            isGrouped: true,
+            groupId: groupId,
+            groupIndex: index
+        }));
+
+        onDragStart(card.id, card.suit, card.rank);
+    };
+
+    const handleCardClick = (index: number) => {
+        const now = Date.now();
+        // Check if this is a double click (within 300ms)
+        if (lastClickedCard === index && now - lastClickTime < 300) {
+            console.log("Double click detected on card", index, "in group", groupId);
+            if (onRemoveCard) {
+                onRemoveCard(groupId, index);
+            }
+        }
+        setLastClickTime(now);
+        setLastClickedCard(index);
+    };
+
+    return (
+        <motion.div
+            className="absolute"
+            style={{
+                left: x,
+                top: y,
+                zIndex: 10,
+            }}
+            initial={{
+                scale: 0.8,
+                opacity: 0,
+                rotate: rotation
+            }}
+            animate={{
+                scale: 1,
+                opacity: 1,
+                rotate: rotation
+            }}
+            exit={{
+                scale: 0.8,
+                opacity: 0,
+                rotate: rotation
+            }}
+            layoutId={groupId}
+            drag
+            dragMomentum={false}
+        >
+            <div className={cn("relative")}>
+                {cards.map((card, index) => {
+                    const offset = mode === 'fan'
+                        ? { x: index * 15, y: index * 5 }
+                        : { x: index * 2, y: index * 2 };
+
+                    return (
+                        <div
+                            key={card.id}
+                            className="absolute cursor-pointer"
+                            style={{
+                                left: offset.x,
+                                top: offset.y,
+                                zIndex: index
+                            }}
+                            draggable={true}
+                            onDragStart={(e) => handleDragStart(e, card, index)}
+                            onClick={() => handleCardClick(index)}
+                            title="Double-click to remove card from group"
+                        >
+                            <Card
+                                suit={card.suit}
+                                rank={card.rank}
+                                faceUp={card.faceUp}
+                                draggable={false}
+                            />
+                        </div>
+                    );
+                })}
+            </div>
+        </motion.div>
+    );
+};
+
+export default CardGroup;import React from 'react';
+import { motion } from 'framer-motion';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Card, { Suit, Rank } from './Card';
+
+interface CardStackModeDialogProps {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSelectMode: (mode: 'fan' | 'stack') => void;
+    baseSuit: Suit;
+    baseRank: Rank;
+    mousePosition: { x: number, y: number } | null;
+}
+
+const CardStackModeDialog = ({
+    open,
+    onOpenChange,
+    onSelectMode,
+    baseSuit,
+    baseRank,
+    mousePosition
+}: CardStackModeDialogProps) => {
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent
+                className="p-4 absolute max-w-md"
+                style={{
+                    position: 'fixed',
+                    top: mousePosition ? `${mousePosition.y}px` : '50%',
+                    left: mousePosition ? `${mousePosition.x}px` : '50%',
+                    transform: mousePosition ? 'translate(-50%, -80%)' : 'translate(-50%, -50%)'
+                }}
+            >
+                <DialogHeader>
+                    <DialogTitle>Como agrupar as cartas?</DialogTitle>
+                </DialogHeader>
+                <div className="flex justify-between gap-6 mt-4">
+                    <motion.div
+                        className="text-center cursor-pointer"
+                        whileHover={{ scale: 1.05 }}
+                        onClick={() => onSelectMode('fan')}
+                    >
+                        <div className="relative mb-2 h-36 w-32">
+                            {[0, 1, 2].map((i) => (
+                                <div
+                                    key={i}
+                                    className="absolute"
+                                    style={{
+                                        left: `${i * 15}px`,
+                                        top: `${i * 5}px`,
+                                        zIndex: i
+                                    }}
+                                >
+                                    <Card
+                                        suit={baseSuit}
+                                        rank={baseRank}
+                                        faceUp={true}
+                                        draggable={false}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <span className="font-medium">Leque</span>
+                    </motion.div>
+
+                    <motion.div
+                        className="text-center cursor-pointer"
+                        whileHover={{ scale: 1.05 }}
+                        onClick={() => onSelectMode('stack')}
+                    >
+                        <div className="relative mb-2 h-36 w-28">
+                            {[0, 1, 2].map((i) => (
+                                <div
+                                    key={i}
+                                    className="absolute"
+                                    style={{
+                                        left: `${i * 2}px`,
+                                        top: `${i * 2}px`,
+                                        zIndex: i
+                                    }}
+                                >
+                                    <Card
+                                        suit={baseSuit}
+                                        rank={baseRank}
+                                        faceUp={true}
+                                        draggable={false}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <span className="font-medium">Pilha</span>
+                    </motion.div>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+export default CardStackModeDialog;
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Card, { Suit, Rank } from './Card';
@@ -266,11 +498,12 @@ export default Deck;
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import Card, { Suit, Rank } from './Card';
 import Deck from './Deck';
 import PlayerHand from './PlayerHand';
 import TableCard from './TableCard';
+import CardGroup, { GroupedCard, CardGroupType } from './CardGroup';
+import CardStackModeDialog from './CardStackModeDialog';
 import { cn } from '@/lib/utils';
 
 export interface Player {
@@ -297,6 +530,7 @@ interface GameTableProps {
     x: number;
     y: number;
   }>;
+  cardGroups?: CardGroupType[];
   onDealCard: (playerId: string) => void;
   onShuffleDeck: () => void;
   onResetGame: () => void;
@@ -304,13 +538,16 @@ interface GameTableProps {
   onRemoveCardsDialog: () => void;
   onMoveCard: (cardId: string, fromType: 'hand' | 'table' | 'deck', toType: 'hand' | 'table', toPlayerId?: string, faceUp?: boolean, x?: number, y?: number) => void;
   onReorderPlayerCards: (playerId: string, startIndex: number, endIndex: number) => void;
+  onCreateCardGroup?: (cardIds: string[], x: number, y: number, mode: 'fan' | 'stack') => void;
+  onRemoveCardFromGroup?: (groupId: string, cardIndex: number) => void;
 }
 
 const GameTable: React.FC<GameTableProps> = ({
   currentPlayerId,
-  players,
-  deckCards,
-  tableCards,
+  players = [],
+  deckCards = [],
+  tableCards = [],
+  cardGroups = [],
   onDealCard,
   onShuffleDeck,
   onResetGame,
@@ -318,6 +555,8 @@ const GameTable: React.FC<GameTableProps> = ({
   onRemoveCardsDialog,
   onMoveCard,
   onReorderPlayerCards,
+  onCreateCardGroup,
+  onRemoveCardFromGroup,
 }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dropPosition, setDropPosition] = useState<{ x: number, y: number } | null>(null);
@@ -331,10 +570,29 @@ const GameTable: React.FC<GameTableProps> = ({
     sourceId?: string;
     sourceIndex?: number;
   } | null>(null);
+
+  // Estado para o modal de escolha entre leque e pilha
+  const [showStackOptions, setShowStackOptions] = useState(false);
+  const [stackTarget, setStackTarget] = useState<{
+    draggedCardId: string;
+    targetCardId: string;
+    x: number;
+    y: number;
+    draggedSuit: Suit;
+    draggedRank: Rank;
+    targetSuit: Suit;
+    targetRank: Rank;
+  } | null>(null);
+
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const currentPlayer = players.find(p => p.id === currentPlayerId);
-  const otherPlayers = players.filter(p => p.id !== currentPlayerId);
+  // Verificação de segurança para evitar erro quando currentPlayerId não é encontrado
+  const currentPlayer = players.find(p => p.id === currentPlayerId) || null;
+
+  // Verificação de segurança para evitar erro quando players é undefined
+  const otherPlayers = currentPlayer
+    ? players.filter(p => p.id !== currentPlayerId)
+    : [];
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -348,7 +606,7 @@ const GameTable: React.FC<GameTableProps> = ({
       return;
     }
 
-    setIsDraggingOver(true);
+    setIsDraggingOver(true); // This uses the state variable
 
     if (tableRef.current) {
       const rect = tableRef.current.getBoundingClientRect();
@@ -361,6 +619,28 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handleDragLeave = () => {
     setIsDraggingOver(false);
+  };
+
+  const isOverCard = (x: number, y: number): { isOver: boolean; cardId: string; suit: Suit; rank: Rank } | null => {
+    // Função para verificar se a posição de drop está sobre alguma carta na mesa
+    for (const card of tableCards) {
+      // Considerando que a carta tem aproximadamente 80px de largura e 112px de altura
+      const cardLeft = card.x;
+      const cardRight = card.x + 80;
+      const cardTop = card.y;
+      const cardBottom = card.y + 112;
+
+      if (x >= cardLeft && x <= cardRight && y >= cardTop && y <= cardBottom) {
+        return {
+          isOver: true,
+          cardId: card.id,
+          suit: card.suit,
+          rank: card.rank
+        };
+      }
+    }
+
+    return null;
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -385,11 +665,39 @@ const GameTable: React.FC<GameTableProps> = ({
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
 
       if (data.type === 'card') {
+        // Verificar se estamos dropando sobre outra carta
+        const overCardInfo = isOverCard(dropPosition.x, dropPosition.y);
+
+        if (overCardInfo && overCardInfo.isOver) {
+          // Estamos dropando sobre outra carta, mostrar o modal de escolha
+          const draggedCardId = draggedCard?.id || data.id;
+
+          setStackTarget({
+            draggedCardId: draggedCardId, // Use o ID do draggedCard se disponível
+            targetCardId: overCardInfo.cardId,
+            x: dropPosition.x,
+            y: dropPosition.y,
+            draggedSuit: data.suit,
+            draggedRank: data.rank,
+            targetSuit: overCardInfo.suit,
+            targetRank: overCardInfo.rank
+          });
+
+          // Armazenar a posição do mouse para o modal
+          setMousePosition({ x: e.clientX, y: e.clientY });
+
+          // Mostrar o modal de escolha do modo de agrupamento
+          setShowStackOptions(true);
+          setIsDraggingOver(false);
+          return;
+        }
+
         // Identify the source type of the card
         const sourceType = draggedCard?.sourceType || 'deck';
 
         // Set up the dragged card information
         const newDraggedCard = {
+          id: data.id,
           suit: data.suit,
           rank: data.rank,
           sourceType: sourceType,
@@ -434,9 +742,9 @@ const GameTable: React.FC<GameTableProps> = ({
       const x = dropPosition.x;
       const y = dropPosition.y;
 
-      if (draggedCard.sourceType === 'hand') {
+      if (draggedCard.sourceType === 'hand' && currentPlayer) {
         // Move from player's hand to the table
-        const card = currentPlayer?.cards[draggedCard.sourceIndex || 0];
+        const card = currentPlayer.cards[draggedCard.sourceIndex || 0];
         if (card) {
           onMoveCard(card.id, 'hand', 'table', undefined, faceUp, x, y);
         }
@@ -457,10 +765,26 @@ const GameTable: React.FC<GameTableProps> = ({
     setDropPosition(null);
   };
 
+  const handleStackModeSelected = (mode: 'fan' | 'stack') => {
+    console.log("Stack mode selected:", mode, stackTarget, onCreateCardGroup);
+
+    if (stackTarget && onCreateCardGroup) {
+      // Criar um grupo de cartas com as duas cartas
+      const cardIds = [stackTarget.draggedCardId, stackTarget.targetCardId];
+      console.log("Creating card group with IDs:", cardIds);
+      onCreateCardGroup(cardIds, stackTarget.x, stackTarget.y, mode);
+    }
+
+    setShowStackOptions(false);
+    setStackTarget(null);
+    setDraggedCard(null);
+  };
+
   const handleDeckCardDrag = (e: React.DragEvent<HTMLDivElement>) => {
     if (deckCards.length === 0) return;
 
     setDraggedCard({
+      id: 'top-card', // Identifica como a carta do topo do deck
       suit: deckCards[deckCards.length - 1].suit,
       rank: deckCards[deckCards.length - 1].rank,
       sourceType: 'deck'
@@ -483,6 +807,17 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handleTableCardDrag = (cardId: string, suit: Suit, rank: Rank) => {
     setDraggedCard({
+      id: cardId,
+      suit,
+      rank,
+      sourceType: 'table',
+      sourceId: cardId
+    });
+  };
+
+  const handleGroupCardDrag = (cardId: string, suit: Suit, rank: Rank) => {
+    setDraggedCard({
+      id: cardId,
       suit,
       rank,
       sourceType: 'table',
@@ -511,12 +846,12 @@ const GameTable: React.FC<GameTableProps> = ({
           }
         } else if (draggedCard.sourceType === 'hand' && draggedCard.sourceId !== playerId) {
           // Move from one player's hand to another's
-          const card = players
-            .find(p => p.id === draggedCard.sourceId)
-            ?.cards[draggedCard.sourceIndex || 0];
-
-          if (card) {
-            onMoveCard(card.id, 'hand', 'hand', playerId, true);
+          const sourcePlayer = players.find(p => p.id === draggedCard.sourceId);
+          if (sourcePlayer && typeof draggedCard.sourceIndex === 'number') {
+            const card = sourcePlayer.cards[draggedCard.sourceIndex];
+            if (card) {
+              onMoveCard(card.id, 'hand', 'hand', playerId, true);
+            }
           }
         }
       }
@@ -528,15 +863,52 @@ const GameTable: React.FC<GameTableProps> = ({
     setDropPosition(null);
   };
 
-  const getPlayerPosition = (position: number, totalPlayers: number) => {
-    const angle = (position / totalPlayers) * 2 * Math.PI;
-    const radius = 42; // % of container
+  // Posicionamento estratégico dos jogadores em torno da mesa
+  const getPlayerPositions = (players: Player[]) => {
+    const positions: Record<string, { left: string, top: string }> = {};
 
-    return {
-      left: `${50 + radius * Math.cos(angle)}%`,
-      top: `${50 + radius * Math.sin(angle)}%`,
-    };
+    // Total de jogadores excluindo o atual
+    const otherPlayerCount = players.length - 1;
+
+    if (otherPlayerCount === 0) {
+      return positions;
+    }
+
+    // Definir posições apenas para os lados e topo
+    // Evitando a parte inferior onde fica o jogador atual
+    players.forEach(player => {
+      if (player.id === currentPlayerId) {
+        // Jogador atual já está posicionado na parte inferior
+        return;
+      }
+
+      // Calcular a posição baseada no índice do jogador
+      // Distribuir entre: topo-esquerda, topo, topo-direita, direita, esquerda
+      const index = player.position % 5;
+
+      switch (index) {
+        case 0: // topo-esquerda
+          positions[player.id] = { left: '15%', top: '15%' };
+          break;
+        case 1: // topo
+          positions[player.id] = { left: '50%', top: '10%' };
+          break;
+        case 2: // topo-direita
+          positions[player.id] = { left: '85%', top: '15%' };
+          break;
+        case 3: // direita
+          positions[player.id] = { left: '85%', top: '40%' };
+          break;
+        case 4: // esquerda
+          positions[player.id] = { left: '15%', top: '40%' };
+          break;
+      }
+    });
+
+    return positions;
   };
+
+  const playerPositions = getPlayerPositions(players);
 
   return (
     <div className="relative w-full h-full">
@@ -552,8 +924,8 @@ const GameTable: React.FC<GameTableProps> = ({
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Table Cards */}
         <AnimatePresence>
+          {/* Table Cards */}
           {tableCards.map((card) => (
             <TableCard
               key={card.id}
@@ -564,6 +936,20 @@ const GameTable: React.FC<GameTableProps> = ({
               x={card.x}
               y={card.y}
               onDragStart={handleTableCardDrag}
+            />
+          ))}
+
+          {/* Card Groups - certifique-se de que temos cardGroups e que é um array */}
+          {cardGroups && Array.isArray(cardGroups) && cardGroups.map((group) => (
+            <CardGroup
+              key={group.id}
+              groupId={group.id}
+              cards={group.cards}
+              x={group.x}
+              y={group.y}
+              mode={group.mode}
+              onDragStart={handleGroupCardDrag}
+              onRemoveCard={onRemoveCardFromGroup}
             />
           ))}
         </AnimatePresence>
@@ -580,13 +966,18 @@ const GameTable: React.FC<GameTableProps> = ({
 
         {/* Other Players */}
         {otherPlayers.map((player) => {
-          const position = getPlayerPosition(player.position, players.length);
+          const position = playerPositions[player.id];
+
+          if (!position) return null;
 
           return (
             <div
               key={player.id}
               className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
-              style={position}
+              style={{
+                left: position.left,
+                top: position.top,
+              }}
               data-player-area="true"
               onDragOver={(e) => {
                 e.preventDefault();
@@ -728,6 +1119,18 @@ const GameTable: React.FC<GameTableProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Card Stack Mode Dialog */}
+      {stackTarget && (
+        <CardStackModeDialog
+          open={showStackOptions}
+          onOpenChange={setShowStackOptions}
+          onSelectMode={handleStackModeSelected}
+          baseSuit={stackTarget.draggedSuit}
+          baseRank={stackTarget.draggedRank}
+          mousePosition={mousePosition}
+        />
+      )}
     </div>
   );
 };
@@ -748,7 +1151,7 @@ interface PlayerHandProps {
 }
 
 const PlayerHand: React.FC<PlayerHandProps> = ({
-  cards,
+  cards = [], // Fornecer um valor padrão para evitar erros
   isCurrentPlayer,
   playerName,
   onCardDragStart,
@@ -788,6 +1191,8 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
   // Lidar com início do arrasto
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, index: number) => {
+    if (index < 0 || index >= cards.length) return;
+
     // Definir dados completos para transferência (incluindo suit e rank para visualização)
     e.dataTransfer.setData('application/json', JSON.stringify({
       type: 'card',
@@ -914,7 +1319,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
   // Função auxiliar para calcular as posições das cartas
   const calculateCardPositions = () => {
-    if (!cardsContainerRef.current) return Array(cards.length).fill(0);
+    if (!cardsContainerRef.current || cards.length === 0) return [];
 
     // Calcular espaçamento básico
     let spacing = getCardSpacing();
@@ -986,13 +1391,15 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
           className="flex items-center justify-center relative w-full h-28"
         >
           {/* Indicador de posição para arrasto */}
-          {draggingIndex !== null && dragOverIndex !== null && isCurrentPlayer && (
+          {draggingIndex !== null && dragOverIndex !== null && isCurrentPlayer && cards.length > 0 && (
             <motion.div
               className="absolute h-28 w-1 bg-blue-500 rounded-full opacity-70 z-50"
               style={{
                 left: (() => {
                   const positions = calculateCardPositions();
                   const idx = Math.min(Math.max(0, dragOverIndex), positions.length);
+
+                  if (positions.length === 0) return "50%";
 
                   if (idx === 0) {
                     return `${positions[0] - 5}px`;
@@ -1013,7 +1420,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
             {cards.map((card, index) => {
               const isBeingDragged = index === draggingIndex;
               const positions = calculateCardPositions();
-              const left = positions[index];
+              const left = positions[index] || 0;
 
               return (
                 <motion.div
@@ -1197,7 +1604,6 @@ const RemoveCardsDialog: React.FC<RemoveCardsDialogProps> = ({
 };
 
 export default RemoveCardsDialog;
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -1215,28 +1621,28 @@ const RoomSetup: React.FC<RoomSetupProps> = ({ onJoinRoom, onCreateRoom }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
   const [mode, setMode] = useState<'join' | 'create' | null>(null);
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!playerName.trim()) {
       toast.error('Por favor, digite seu nome.');
       return;
     }
-    
+
     if (mode === 'join') {
       if (!roomId.trim()) {
         toast.error('Por favor, digite o código da sala.');
         return;
       }
-      onJoinRoom(playerName, roomId);
+      onJoinRoom(playerName, roomId.toUpperCase());
     } else {
       onCreateRoom(playerName);
     }
   };
-  
+
   return (
-    <motion.div 
+    <motion.div
       className="w-full max-w-md mx-auto"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
@@ -1244,34 +1650,34 @@ const RoomSetup: React.FC<RoomSetupProps> = ({ onJoinRoom, onCreateRoom }) => {
     >
       <div className="flex justify-center mb-8">
         <div className="relative flex space-x-4">
-          <motion.div 
+          <motion.div
             className="absolute w-full h-full"
             animate={{ rotate: [0, 5, -5, 5, 0] }}
             transition={{ duration: 3, repeat: Infinity, repeatType: 'reverse', ease: 'easeInOut' }}
           >
             {Array.from({ length: 5 }).map((_, i) => (
-              <motion.div 
+              <motion.div
                 key={i}
                 className="absolute"
-                style={{ 
-                  top: `${i * 5}px`, 
+                style={{
+                  top: `${i * 5}px`,
                   left: `${i * 5}px`,
                   rotate: `${(i - 2) * 10}deg`,
                   zIndex: i
                 }}
                 animate={{ y: [0, -2, 2, -2, 0] }}
-                transition={{ 
-                  duration: 2, 
-                  repeat: Infinity, 
-                  repeatType: 'reverse', 
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  repeatType: 'reverse',
                   ease: 'easeInOut',
                   delay: i * 0.2
                 }}
               >
-                <Card 
-                  suit={['hearts', 'diamonds', 'clubs', 'spades'][i % 4] as any} 
-                  rank={['A', 'K', 'Q', 'J', '10'][i % 5] as any} 
-                  faceUp={true} 
+                <Card
+                  suit={['hearts', 'diamonds', 'clubs', 'spades'][i % 4] as any}
+                  rank={['A', 'K', 'Q', 'J', '10'][i % 5] as any}
+                  faceUp={true}
                   draggable={false}
                 />
               </motion.div>
@@ -1279,10 +1685,10 @@ const RoomSetup: React.FC<RoomSetupProps> = ({ onJoinRoom, onCreateRoom }) => {
           </motion.div>
         </div>
       </div>
-      
+
       <div className="glass p-8 rounded-2xl shadow-lg">
         <h1 className="text-2xl font-semibold text-center mb-6">Mesa de Cartas Virtual</h1>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="name">Seu nome</Label>
@@ -1294,7 +1700,7 @@ const RoomSetup: React.FC<RoomSetupProps> = ({ onJoinRoom, onCreateRoom }) => {
               className="w-full"
             />
           </div>
-          
+
           {mode === 'join' && (
             <div className="space-y-2">
               <Label htmlFor="roomId">Código da sala</Label>
@@ -1302,24 +1708,24 @@ const RoomSetup: React.FC<RoomSetupProps> = ({ onJoinRoom, onCreateRoom }) => {
                 id="roomId"
                 placeholder="Digite o código da sala"
                 value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                className="w-full"
+                onChange={(e) => setRoomId(e.target.value.toUpperCase())}
+                className="w-full uppercase"
               />
             </div>
           )}
-          
+
           {mode === null ? (
             <div className="flex flex-col space-y-3">
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 onClick={() => setMode('create')}
                 className="w-full"
               >
                 Criar nova sala
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setMode('join')}
                 className="w-full"
               >
@@ -1331,9 +1737,9 @@ const RoomSetup: React.FC<RoomSetupProps> = ({ onJoinRoom, onCreateRoom }) => {
               <Button type="submit" className="w-full">
                 {mode === 'create' ? 'Criar sala' : 'Entrar na sala'}
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setMode(null)}
                 className="w-full"
               >
@@ -1343,12 +1749,16 @@ const RoomSetup: React.FC<RoomSetupProps> = ({ onJoinRoom, onCreateRoom }) => {
           )}
         </form>
       </div>
+
+      <div className="mt-8 text-center text-sm text-gray-500">
+        <p>Código-fonte disponível em <a href="https://github.com/seu-usuario/cartas-virtuais" className="text-blue-500 hover:underline">GitHub</a></p>
+        <p className="mt-2">Convide seus amigos compartilhando o código da sala</p>
+      </div>
     </motion.div>
   );
 };
 
-export default RoomSetup;
-import React, { useEffect, useState } from 'react';
+export default RoomSetup;import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Card, { Suit, Rank } from './Card';
 
@@ -6197,7 +6607,6 @@ import App from './App.tsx'
 import './index.css'
 
 createRoot(document.getElementById("root")!).render(<App />);
-
 import React, { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import GameTable, { Player } from '@/components/GameTable';
@@ -6213,160 +6622,455 @@ import {
   removeCardsBySuit,
   reorderCards
 } from '@/utils/cardUtils';
+import { firebaseService, GameSession } from '@/lib/firebase';
+import { CardGroupType, GroupedCard } from '@/components/CardGroup';
 import { v4 as uuidv4 } from 'uuid';
-
-// Simulação de servidor para demonstração
-const generateRoomId = () => {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-};
 
 const Index = () => {
   const [isInRoom, setIsInRoom] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [roomId, setRoomId] = useState('');
   const [currentPlayerId, setCurrentPlayerId] = useState('');
   const [players, setPlayers] = useState<Player[]>([]);
   const [deckCards, setDeckCards] = useState<CardType[]>([]);
   const [tableCards, setTableCards] = useState<Array<CardType & { x: number, y: number }>>([]);
+  const [cardGroups, setCardGroups] = useState<CardGroupType[]>([]);
   const [showRemoveCardsDialog, setShowRemoveCardsDialog] = useState(false);
 
-  // Inicializar jogo
-  const initializeGame = (playerName: string, existingRoomId?: string) => {
-    const newRoomId = existingRoomId || generateRoomId();
-    const playerId = uuidv4();
-
-    // Criar baralho inicial
-    const initialDeck = shuffleDeck(createDeck());
-
-    // Configurar jogador atual
-    const currentPlayer: Player = {
-      id: playerId,
-      name: playerName,
-      cards: [],
-      position: 0
+  // Effect to register disconnect handler
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isInRoom && roomId && currentPlayerId) {
+        firebaseService.leaveRoom(roomId, currentPlayerId);
+      }
     };
 
-    // Simular outros jogadores para demonstração
-    const demoPlayers: Player[] = [];
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
-    if (!existingRoomId) {
-      // Se estiver criando uma nova sala, adicione alguns jogadores de demonstração
-      const demoNames = ['Carlos', 'Ana', 'João', 'Luiza'];
-      for (let i = 0; i < 4; i++) {
-        demoPlayers.push({
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+
+      // Clean up when component unmounts
+      if (isInRoom && roomId && currentPlayerId) {
+        firebaseService.leaveRoom(roomId, currentPlayerId);
+      }
+    };
+  }, [isInRoom, roomId, currentPlayerId]);
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (!isInRoom || !roomId) return;
+
+    const unsubscribe = firebaseService.subscribeToRoom(roomId, (gameState) => {
+      setPlayers(gameState.players);
+      setDeckCards(gameState.deckCards);
+      setTableCards(gameState.tableCards);
+      setCardGroups(gameState.cardGroups || []);
+    });
+
+    return () => unsubscribe();
+  }, [isInRoom, roomId]);
+
+  // Initialize game with a fresh deck
+  const initializeNewRoom = async (roomId: string) => {
+    await firebaseService.updateGameState(roomId, (state) => {
+      // Initialize with a fresh, shuffled deck
+      state.deckCards = shuffleDeck(createDeck());
+      return state;
+    });
+  };
+
+  // Verifique se está realmente encontrando as cartas na mesa
+  const handleCreateCardGroup = async (cardIds: string[], x: number, y: number, mode: 'fan' | 'stack') => {
+    console.log("handleCreateCardGroup called with:", cardIds, x, y, mode);
+
+    const success = await updateGameState(state => {
+      // Garantir que cardGroups exista
+      if (!state.cardGroups) state.cardGroups = [];
+
+      // Array para armazenar as cartas que serão agrupadas
+      const groupCards: GroupedCard[] = [];
+
+      // Nova lista de cartas na mesa (sem as que serão agrupadas)
+      const newTableCards = [...(state.tableCards || [])];
+
+      // Para debugar
+      console.log("Table cards before:", JSON.stringify(newTableCards));
+
+      // Para cada id de carta
+      for (const cardId of cardIds) {
+        // Encontrar a carta na mesa
+        const cardIndex = newTableCards.findIndex(c => c.id === cardId);
+
+        if (cardIndex >= 0) {
+          // Remover a carta da mesa e adicioná-la ao grupo
+          const card = newTableCards.splice(cardIndex, 1)[0];
+          groupCards.push({
+            id: card.id,
+            suit: card.suit,
+            rank: card.rank,
+            faceUp: card.faceUp
+          });
+        } else if (cardId === 'top-card' && state.deckCards.length > 0) {
+          // Caso especial para carta do baralho
+          const topCard = state.deckCards[state.deckCards.length - 1];
+          state.deckCards = state.deckCards.slice(0, -1);
+
+          groupCards.push({
+            id: uuidv4(),
+            suit: topCard.suit,
+            rank: topCard.rank,
+            faceUp: true
+          });
+        }
+      }
+
+      // Para debugar
+      console.log("Cards found for grouping:", JSON.stringify(groupCards));
+      console.log("Table cards after removal:", JSON.stringify(newTableCards));
+
+      if (groupCards.length > 0) {
+        // Criar o novo grupo
+        const newGroup: CardGroupType = {
           id: uuidv4(),
-          name: demoNames[i],
-          cards: [],
-          position: i + 1
-        });
+          cards: groupCards,
+          x,
+          y,
+          mode
+        };
+
+        // Para debugar
+        console.log("New group created:", JSON.stringify(newGroup));
+        console.log("Current cardGroups:", JSON.stringify(state.cardGroups));
+
+        // Adicionar o grupo à lista
+        state.cardGroups = [...state.cardGroups, newGroup];
+        state.tableCards = newTableCards;
+
+        // Para debugar
+        console.log("Updated cardGroups:", JSON.stringify(state.cardGroups));
+        console.log("Updated tableCards:", JSON.stringify(state.tableCards));
+      }
+
+      return state;
+    });
+
+    if (success) {
+      toast.success('Cartas agrupadas com sucesso!');
+    } else {
+      toast.error('Erro ao agrupar cartas');
+    }
+  };
+
+  // Handle removing a card from a group
+  // Fix 1: Let's improve the handleRemoveCardFromGroup function in Index.tsx
+  // to ensure it works correctly
+
+  const handleRemoveCardFromGroup = async (groupId: string, cardIndex: number) => {
+    console.log("Attempting to remove card", cardIndex, "from group", groupId);
+
+    const success = await updateGameState(state => {
+      // Ensure cardGroups exists
+      if (!state.cardGroups) {
+        console.log("No card groups found");
+        return state;
+      }
+
+      // Find the group
+      const groupIndex = state.cardGroups.findIndex(g => g.id === groupId);
+      if (groupIndex < 0) {
+        console.log("Group not found:", groupId);
+        return state;
+      }
+
+      // Create a copy of the group
+      const group = { ...state.cardGroups[groupIndex] };
+
+      // Verify cardIndex is valid
+      if (cardIndex < 0 || cardIndex >= group.cards.length) {
+        console.log("Invalid card index:", cardIndex);
+        return state;
+      }
+
+      // Make a deep copy of the cards array
+      const newGroupCards = [...group.cards];
+
+      // Remove the card from the group
+      const removedCard = newGroupCards.splice(cardIndex, 1)[0];
+      console.log("Removed card:", removedCard);
+
+      // Make a deep copy of the cardGroups array
+      const newGroups = [...state.cardGroups];
+
+      // Update the group or remove if empty
+      if (newGroupCards.length > 0) {
+        newGroups[groupIndex] = { ...group, cards: newGroupCards };
+      } else {
+        newGroups.splice(groupIndex, 1);
+      }
+
+      // Add the card to the table
+      const tableCard = {
+        id: removedCard.id,
+        suit: removedCard.suit,
+        rank: removedCard.rank,
+        faceUp: removedCard.faceUp,
+        x: group.x + 30,
+        y: group.y + 30
+      };
+
+      const tableCards = [...(state.tableCards || []), tableCard];
+
+      console.log("Updated state:", {
+        cardGroups: newGroups,
+        tableCards
+      });
+
+      return {
+        ...state,
+        cardGroups: newGroups,
+        tableCards,
+      };
+    });
+
+    if (success) {
+      toast.success('Carta removida do grupo');
+    } else {
+      toast.error('Erro ao remover carta do grupo');
+    }
+  };
+
+
+  // Handler for creating a new room
+  const handleCreateRoom = async (playerName: string) => {
+    setIsLoading(true);
+    try {
+      const [newRoomId, newPlayerId] = await firebaseService.createRoom(playerName);
+
+      // Initialize the room with a deck
+      await initializeNewRoom(newRoomId);
+
+      // Get latest game state
+      const gameState = await firebaseService.getGameState(newRoomId);
+
+      if (!gameState) {
+        toast.error('Erro ao inicializar a sala');
+        setIsLoading(false);
+        return;
+      }
+
+      setRoomId(newRoomId);
+      setCurrentPlayerId(newPlayerId);
+      setPlayers(gameState.players);
+      setDeckCards(gameState.deckCards);
+      setTableCards(gameState.tableCards);
+      setIsInRoom(true);
+
+      toast.success(`Sala ${newRoomId} criada com sucesso!`);
+    } catch (error) {
+      console.error("Error creating room:", error);
+      toast.error('Erro ao criar sala. Por favor, tente novamente.');
+    }
+    setIsLoading(false);
+  };
+
+  // Handler for joining an existing room
+  const handleJoinRoom = async (playerName: string, enteredRoomId: string) => {
+    setIsLoading(true);
+    try {
+      const [newRoomId, newPlayerId, success] = await firebaseService.joinRoom(enteredRoomId, playerName);
+
+      if (!success) {
+        toast.error(`Sala ${enteredRoomId} não encontrada`);
+        setIsLoading(false);
+        return;
+      }
+
+      const gameState = await firebaseService.getGameState(newRoomId);
+
+      if (!gameState) {
+        toast.error('Erro ao acessar a sala');
+        setIsLoading(false);
+        return;
+      }
+
+      setRoomId(newRoomId);
+      setCurrentPlayerId(newPlayerId);
+      setPlayers(gameState.players);
+      setDeckCards(gameState.deckCards);
+      setTableCards(gameState.tableCards);
+      setIsInRoom(true);
+
+      toast.success(`Você entrou na sala ${newRoomId}`);
+    } catch (error) {
+      console.error("Error joining room:", error);
+      toast.error('Erro ao entrar na sala. Por favor, tente novamente.');
+    }
+    setIsLoading(false);
+  };
+
+  // Function to send updates to Firebase
+  const updateGameState = async (updater: (state: any) => any) => {
+    return await firebaseService.updateGameState(roomId, updater);
+  };
+
+  // Handle dealing a card to a player
+  const handleDealCard = async (playerId: string) => {
+    const success = await updateGameState(state => {
+      if (state.deckCards.length === 0) {
+        toast.error('O baralho está vazio!');
+        return state;
+      }
+
+      const { card, newDeck } = dealCard(state.deckCards);
+
+      if (!card) {
+        toast.error('Não há mais cartas no baralho!');
+        return state;
+      }
+
+      state.deckCards = newDeck;
+
+      const playerIndex = state.players.findIndex(p => p.id === playerId);
+
+      if (playerIndex >= 0) {
+        // Garantir que o jogador tem um array de cartas inicializado
+        if (!state.players[playerIndex].cards) {
+          state.players[playerIndex].cards = [];
+        }
+
+        // Agora é seguro adicionar a carta
+        state.players[playerIndex].cards.push({ ...card, faceUp: true });
+      }
+
+      return state;
+    });
+
+    if (success) {
+      toast.success('Carta comprada!');
+    }
+  };
+
+  // Handle shuffling the deck
+  const handleShuffleDeck = async () => {
+    const success = await updateGameState(state => {
+      state.deckCards = shuffleDeck([...state.deckCards]);
+      return state;
+    });
+
+    if (success) {
+      toast.success('Baralho embaralhado!');
+    }
+  };
+
+  // Handle adding a new deck
+  const handleAddDeck = async () => {
+    const success = await updateGameState(state => {
+      const newDeck = createDeck();
+      state.deckCards = [...state.deckCards, ...newDeck];
+      return state;
+    });
+
+    if (success) {
+      toast.success('Novo baralho adicionado!');
+    }
+  };
+
+  // Handle removing cards from the deck
+  const handleRemoveCards = async (suits: Suit[], ranks: Rank[]) => {
+    const currentDeckSize = deckCards.length;
+
+    const success = await updateGameState(state => {
+      let newDeck = [...state.deckCards];
+
+      if (suits.length > 0) {
+        newDeck = removeCardsBySuit(newDeck, suits);
+      }
+
+      if (ranks.length > 0) {
+        newDeck = removeCardsByRank(newDeck, ranks);
+      }
+
+      state.deckCards = newDeck;
+      return state;
+    });
+
+    if (success) {
+      const gameState = await firebaseService.getGameState(roomId);
+      if (gameState) {
+        const removedCount = currentDeckSize - gameState.deckCards.length;
+        toast.success(`${removedCount} cartas removidas do baralho!`);
       }
     }
-
-    const allPlayers = [currentPlayer, ...demoPlayers];
-
-    setRoomId(newRoomId);
-    setCurrentPlayerId(playerId);
-    setPlayers(allPlayers);
-    setDeckCards(initialDeck);
-    setIsInRoom(true);
-
-    toast.success(existingRoomId
-      ? `Você entrou na sala ${newRoomId}`
-      : `Sala ${newRoomId} criada com sucesso!`
-    );
   };
 
-  // Lidar com criação de sala
-  const handleCreateRoom = (playerName: string) => {
-    initializeGame(playerName);
-  };
+  // Handle resetting the game
+  const handleResetGame = async () => {
+    const success = await updateGameState(state => {
+      // Gather all cards back to the deck
+      const allCards = [
+        ...state.deckCards,
+        ...state.tableCards,
+        ...state.players.flatMap(player => player.cards)
+      ];
 
-  // Lidar com entrada em sala existente
-  const handleJoinRoom = (playerName: string, roomId: string) => {
-    initializeGame(playerName, roomId);
-  };
+      state.deckCards = shuffleDeck(allCards);
+      state.tableCards = [];
 
-  // Lidar com distribuição de carta
-  const handleDealCard = (playerId: string) => {
-    if (deckCards.length === 0) {
-      toast.error('O baralho está vazio!');
-      return;
+      // Clear all players' hands
+      state.players.forEach(player => {
+        player.cards = [];
+      });
+
+      return state;
+    });
+
+    if (success) {
+      toast.success('Jogo reiniciado! Todas as cartas retornaram ao baralho.');
     }
+  };
 
-    const { card, newDeck } = dealCard(deckCards);
+  // Função auxiliar para encontrar uma carta
+  const findCard = (
+    state: GameSession,
+    cardId: string,
+    fromType: 'hand' | 'table' | 'deck'
+  ): { card: CardType | null, playerIndex?: number, cardIndex: number } => {
+    if (fromType === 'deck') {
+      const deckCards = state.deckCards || [];
+      return {
+        card: deckCards.length > 0 ? deckCards[deckCards.length - 1] : null,
+        cardIndex: deckCards.length - 1
+      };
+    } else if (fromType === 'table') {
+      const tableCards = state.tableCards || [];
+      const cardIndex = tableCards.findIndex(c => c.id === cardId);
+      return {
+        card: cardIndex >= 0 ? { ...tableCards[cardIndex] } : null,
+        cardIndex
+      };
+    } else {
+      // Procurar nos jogadores
+      const players = state.players || [];
+      for (let i = 0; i < players.length; i++) {
+        const player = players[i];
+        if (!player || !player.cards) continue;
 
-    if (!card) {
-      toast.error('Não há mais cartas no baralho!');
-      return;
-    }
-
-    setDeckCards(newDeck);
-
-    setPlayers(prevPlayers =>
-      prevPlayers.map(player => {
-        if (player.id === playerId) {
+        const cardIndex = player.cards.findIndex(c => c.id === cardId);
+        if (cardIndex >= 0) {
           return {
-            ...player,
-            cards: [...player.cards, { ...card, faceUp: true }]
+            card: { ...player.cards[cardIndex] },
+            playerIndex: i,
+            cardIndex
           };
         }
-        return player;
-      })
-    );
-
-    toast.success('Carta comprada!');
-  };
-
-  // Lidar com embaralhamento
-  const handleShuffleDeck = () => {
-    setDeckCards(prevDeck => shuffleDeck([...prevDeck]));
-    toast.success('Baralho embaralhado!');
-  };
-
-  // Lidar com adição de baralho
-  const handleAddDeck = () => {
-    const newDeck = createDeck();
-    setDeckCards(prevDeck => [...prevDeck, ...newDeck]);
-    toast.success('Novo baralho adicionado!');
-  };
-
-  // Lidar com remoção de cartas
-  const handleRemoveCards = (suits: Suit[], ranks: Rank[]) => {
-    let newDeck = [...deckCards];
-
-    if (suits.length > 0) {
-      newDeck = removeCardsBySuit(newDeck, suits);
+      }
+      return { card: null, cardIndex: -1 };
     }
-
-    if (ranks.length > 0) {
-      newDeck = removeCardsByRank(newDeck, ranks);
-    }
-
-    setDeckCards(newDeck);
-
-    const removedCount = deckCards.length - newDeck.length;
-    toast.success(`${removedCount} cartas removidas do baralho!`);
   };
 
-  // Reiniciar jogo
-  const handleResetGame = () => {
-    // Reunir todas as cartas de volta ao baralho
-    const allCards = [
-      ...deckCards,
-      ...tableCards,
-      ...players.flatMap(player => player.cards)
-    ];
-
-    setDeckCards(shuffleDeck(allCards));
-    setTableCards([]);
-    setPlayers(prevPlayers =>
-      prevPlayers.map(player => ({ ...player, cards: [] }))
-    );
-
-    toast.success('Jogo reiniciado! Todas as cartas retornaram ao baralho.');
-  };
-
-  // Mover carta entre locais
-  const handleMoveCard = (
+  // Handle moving cards between places
+  const handleMoveCard = async (
     cardId: string,
     fromType: 'hand' | 'table' | 'deck',
     toType: 'hand' | 'table',
@@ -6377,158 +7081,266 @@ const Index = () => {
   ) => {
     // Do baralho para a mesa
     if (fromType === 'deck' && toType === 'table' && typeof x === 'number' && typeof y === 'number') {
-      if (deckCards.length === 0) {
-        toast.error('O baralho está vazio!');
-        return;
-      }
+      await updateGameState(state => {
+        // Verificar se o baralho tem cartas
+        if (!state.deckCards || state.deckCards.length === 0) {
+          toast.error('O baralho está vazio!');
+          return state;
+        }
 
-      const { card, newDeck } = dealCard(deckCards);
+        const { card, newDeck } = dealCard(state.deckCards);
 
-      if (!card) return;
+        if (!card) return state;
 
-      setDeckCards(newDeck);
-      setTableCards(prev => [...prev, { ...card, faceUp: faceUp ?? false, x, y }]);
+        // Garantir que tableCards exista
+        const tableCards = state.tableCards || [];
+
+        return {
+          ...state,
+          deckCards: newDeck,
+          tableCards: [...tableCards, { ...card, faceUp: faceUp ?? false, x, y }],
+          lastUpdate: Date.now()
+        };
+      });
       return;
     }
 
     // Do baralho para a mão
     if (fromType === 'deck' && toType === 'hand' && toPlayerId) {
-      if (deckCards.length === 0) {
-        toast.error('O baralho está vazio!');
-        return;
-      }
+      await updateGameState(state => {
+        // Verificar se o baralho tem cartas
+        if (!state.deckCards || state.deckCards.length === 0) {
+          toast.error('O baralho está vazio!');
+          return state;
+        }
 
-      const { card, newDeck } = dealCard(deckCards);
+        const { card, newDeck } = dealCard(state.deckCards);
 
-      if (!card) return;
+        if (!card) return state;
 
-      setDeckCards(newDeck);
-      setPlayers(prevPlayers =>
-        prevPlayers.map(player => {
-          if (player.id === toPlayerId) {
-            return {
-              ...player,
-              cards: [...player.cards, { ...card, faceUp: faceUp ?? true }]
-            };
-          }
-          return player;
-        })
-      );
+        // Garantir que players existe
+        const players = [...(state.players || [])];
+        const playerIndex = players.findIndex(p => p.id === toPlayerId);
+
+        if (playerIndex < 0) return state;
+
+        // Garantir que o jogador tem um array de cartas
+        if (!players[playerIndex].cards) {
+          players[playerIndex].cards = [];
+        }
+
+        players[playerIndex].cards.push({ ...card, faceUp: faceUp ?? true });
+
+        return {
+          ...state,
+          deckCards: newDeck,
+          players,
+          lastUpdate: Date.now()
+        };
+      });
       return;
     }
 
     // Da mão para a mesa
     if (fromType === 'hand' && toType === 'table' && typeof x === 'number' && typeof y === 'number') {
-      setPlayers(prevPlayers => {
-        const newPlayers = [...prevPlayers];
-        const playerIndex = newPlayers.findIndex(p => p.cards.some(c => c.id === cardId));
+      await updateGameState(state => {
+        // Encontrar a carta na mão do jogador
+        const { card, playerIndex, cardIndex } = findCard(state, cardId, 'hand');
 
-        if (playerIndex === -1) return prevPlayers;
+        if (!card || playerIndex === undefined || cardIndex < 0) return state;
 
-        const player = newPlayers[playerIndex];
-        const cardIndex = player.cards.findIndex(c => c.id === cardId);
-        const card = player.cards[cardIndex];
+        // Criar cópias dos arrays para modificar
+        const players = [...(state.players || [])];
 
-        player.cards.splice(cardIndex, 1);
+        // Garantir que o player tem um array de cartas
+        if (!players[playerIndex].cards) {
+          return state; // Se não tiver cartas, algo está errado
+        }
 
-        setTableCards(prev => [...prev, { ...card, faceUp: faceUp ?? false, x, y }]);
+        const playerCards = [...players[playerIndex].cards];
 
-        return newPlayers;
+        // Remover a carta da mão do jogador
+        playerCards.splice(cardIndex, 1);
+        players[playerIndex].cards = playerCards;
+
+        // Garantir que tableCards exista
+        const tableCards = state.tableCards || [];
+
+        // Adicionar a carta à mesa
+        return {
+          ...state,
+          players,
+          tableCards: [...tableCards, { ...card, faceUp: faceUp ?? false, x, y }],
+          lastUpdate: Date.now()
+        };
       });
       return;
     }
 
     // Da mesa para a mão
     if (fromType === 'table' && toType === 'hand' && toPlayerId) {
-      const cardIndex = tableCards.findIndex(c => c.id === cardId);
+      await updateGameState(state => {
+        // Garantir que tableCards exista
+        const tableCards = state.tableCards || [];
 
-      if (cardIndex === -1) return;
+        // Encontrar a carta na mesa
+        const cardIndex = tableCards.findIndex(c => c.id === cardId);
 
-      const card = tableCards[cardIndex];
+        if (cardIndex < 0) return state;
 
-      setTableCards(prev => prev.filter(c => c.id !== cardId));
+        const card = tableCards[cardIndex];
 
-      setPlayers(prevPlayers =>
-        prevPlayers.map(player => {
-          if (player.id === toPlayerId) {
-            return {
-              ...player,
-              cards: [...player.cards, { ...card, faceUp: faceUp ?? true }]
-            };
-          }
-          return player;
-        })
-      );
+        // Criar uma cópia da array de cartas da mesa
+        const newTableCards = [...tableCards];
+        newTableCards.splice(cardIndex, 1);
+
+        // Encontrar o jogador alvo
+        const players = [...(state.players || [])];
+        const playerIndex = players.findIndex(p => p.id === toPlayerId);
+
+        if (playerIndex < 0) return state;
+
+        // Garantir que o jogador tem um array de cartas
+        if (!players[playerIndex].cards) {
+          players[playerIndex].cards = [];
+        }
+
+        players[playerIndex].cards.push({ ...card, faceUp: faceUp ?? true });
+
+        return {
+          ...state,
+          players,
+          tableCards: newTableCards,
+          lastUpdate: Date.now()
+        };
+      });
       return;
     }
 
-    // Da mesa para a mesa (reposicionar)
+    // Da mesa para a mesa (reposicionamento)
     if (fromType === 'table' && toType === 'table' && typeof x === 'number' && typeof y === 'number') {
-      setTableCards(prev => {
-        return prev.map(card => {
-          if (card.id === cardId) {
-            return { ...card, x, y, faceUp: faceUp ?? card.faceUp };
-          }
-          return card;
-        });
+      await updateGameState(state => {
+        // Garantir que tableCards exista
+        const tableCards = state.tableCards || [];
+
+        // Encontrar a carta na mesa
+        const cardIndex = tableCards.findIndex(c => c.id === cardId);
+
+        if (cardIndex < 0) return state;
+
+        // Criar uma cópia da array de cartas da mesa
+        const newTableCards = [...tableCards];
+
+        // Atualizar posição e estado da carta
+        newTableCards[cardIndex] = {
+          ...newTableCards[cardIndex],
+          x,
+          y,
+          faceUp: faceUp ?? newTableCards[cardIndex].faceUp
+        };
+
+        return {
+          ...state,
+          tableCards: newTableCards,
+          lastUpdate: Date.now()
+        };
       });
       return;
     }
 
     // Da mão para a mão (transferir entre jogadores)
     if (fromType === 'hand' && toType === 'hand' && toPlayerId) {
-      setPlayers(prevPlayers => {
-        const newPlayers = [...prevPlayers];
+      await updateGameState(state => {
+        // Garantir que players exista
+        const players = [...(state.players || [])];
 
-        // Encontrar o jogador que possui a carta
-        const fromPlayerIndex = newPlayers.findIndex(p => p.cards.some(c => c.id === cardId));
+        // Encontrar a carta na mão do jogador
+        let sourcePlayerIndex = -1;
+        let sourceCardIndex = -1;
+        let sourceCard = null;
 
-        if (fromPlayerIndex === -1) return prevPlayers;
+        // Procurar a carta em todas as mãos dos jogadores
+        for (let i = 0; i < players.length; i++) {
+          const player = players[i];
+          if (!player.cards) continue;
 
-        const fromPlayer = newPlayers[fromPlayerIndex];
-        const cardIndex = fromPlayer.cards.findIndex(c => c.id === cardId);
-        const card = { ...fromPlayer.cards[cardIndex], faceUp: faceUp ?? true };
-
-        // Remover a carta do jogador atual
-        fromPlayer.cards.splice(cardIndex, 1);
-
-        // Adicionar a carta ao jogador de destino
-        newPlayers.forEach(player => {
-          if (player.id === toPlayerId) {
-            player.cards.push(card);
+          const index = player.cards.findIndex(c => c.id === cardId);
+          if (index !== -1) {
+            sourcePlayerIndex = i;
+            sourceCardIndex = index;
+            sourceCard = { ...player.cards[index] };
+            break;
           }
+        }
+
+        if (sourceCardIndex === -1 || !sourceCard) return state;
+
+        // Remover a carta do jogador de origem
+        const sourcePlayerCards = [...players[sourcePlayerIndex].cards];
+        sourcePlayerCards.splice(sourceCardIndex, 1);
+        players[sourcePlayerIndex].cards = sourcePlayerCards;
+
+        // Encontrar o jogador alvo
+        const targetPlayerIndex = players.findIndex(p => p.id === toPlayerId);
+
+        if (targetPlayerIndex < 0) return state;
+
+        // Garantir que o jogador alvo tenha um array de cartas
+        if (!players[targetPlayerIndex].cards) {
+          players[targetPlayerIndex].cards = [];
+        }
+
+        // Adicionar a carta à mão do jogador alvo
+        players[targetPlayerIndex].cards.push({
+          ...sourceCard,
+          faceUp: faceUp ?? true
         });
 
-        return newPlayers;
+        return {
+          ...state,
+          players,
+          lastUpdate: Date.now()
+        };
       });
     }
   };
 
-  // Reordenar cartas na mão
-  const handleReorderPlayerCards = (playerId: string, startIndex: number, endIndex: number) => {
+  // Handle reordering cards in a player's hand
+  const handleReorderPlayerCards = async (playerId: string, startIndex: number, endIndex: number) => {
     // Make sure indices are valid
     if (startIndex === endIndex) return;
 
-    setPlayers(prevPlayers =>
-      prevPlayers.map(player => {
-        if (player.id === playerId) {
-          // Create a new cards array with the reordered cards
-          const newCards = reorderCards(player.cards, startIndex, endIndex);
+    const success = await updateGameState(state => {
+      const playerIndex = state.players.findIndex(p => p.id === playerId);
 
-          return {
-            ...player,
-            cards: newCards
-          };
-        }
-        return player;
-      })
-    );
+      if (playerIndex === -1) return state;
 
-    // Add a small animation feedback
-    toast.success('Cartas reordenadas!');
+      const player = state.players[playerIndex];
+
+      // Create a new cards array with the reordered cards
+      player.cards = reorderCards(player.cards, startIndex, endIndex);
+
+      return state;
+    });
+
+    if (success) {
+      toast.success('Cartas reordenadas!', { duration: 1000 });
+    }
   };
 
-  // Renderizar componente
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 p-4">
+        <div className="glass p-8 rounded-2xl shadow-lg text-center">
+          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Render room setup if not in a room
   if (!isInRoom) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 p-4">
@@ -6537,11 +7349,17 @@ const Index = () => {
     );
   }
 
+  // Render game table
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-slate-100 to-blue-50 p-4">
       <div className="absolute top-4 left-4 z-10 px-4 py-2 bg-white bg-opacity-80 rounded-full shadow-sm">
         <span className="text-xs font-semibold text-gray-500 mr-2">SALA:</span>
-        <span className="text-sm font-mono font-bold">{roomId}</span>
+        <span className="text-sm font-mono font-bold select-all cursor-pointer" onClick={() => {
+          navigator.clipboard.writeText(roomId);
+          toast.success('Código copiado para a área de transferência!');
+        }} title="Clique para copiar">{roomId}</span>
+        <span className="ml-4 text-xs font-semibold text-gray-500 mr-2">JOGADORES:</span>
+        <span className="text-sm font-mono font-bold">{players.length}</span>
       </div>
 
       <div className="w-full h-full">
@@ -6550,6 +7368,7 @@ const Index = () => {
           players={players}
           deckCards={deckCards}
           tableCards={tableCards}
+          cardGroups={cardGroups} // Certifique-se de que esta prop está sendo passada
           onDealCard={handleDealCard}
           onShuffleDeck={handleShuffleDeck}
           onResetGame={handleResetGame}
@@ -6557,6 +7376,8 @@ const Index = () => {
           onRemoveCardsDialog={() => setShowRemoveCardsDialog(true)}
           onMoveCard={handleMoveCard}
           onReorderPlayerCards={handleReorderPlayerCards}
+          onCreateCardGroup={handleCreateCardGroup}
+          onRemoveCardFromGroup={handleRemoveCardFromGroup}
         />
       </div>
 
@@ -6565,12 +7386,29 @@ const Index = () => {
         onClose={() => setShowRemoveCardsDialog(false)}
         onRemoveCards={handleRemoveCards}
       />
+
+      <div className="absolute bottom-2 right-2 text-xs text-gray-500">
+        <button
+          className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+          onClick={async () => {
+            await firebaseService.leaveRoom(roomId, currentPlayerId);
+            setIsInRoom(false);
+            setRoomId('');
+            setCurrentPlayerId('');
+            setPlayers([]);
+            setDeckCards([]);
+            setTableCards([]);
+            toast.success('Você saiu da sala.');
+          }}
+        >
+          Sair da Sala
+        </button>
+      </div>
     </div>
   );
 };
 
-export default Index;
-import { useLocation } from "react-router-dom";
+export default Index;import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
 const NotFound = () => {

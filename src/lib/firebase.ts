@@ -21,6 +21,7 @@ const database = getDatabase(app);
 // Types for game data
 import { CardType } from '@/utils/cardUtils';
 import { Player } from '@/components/GameTable';
+import { Rank, Suit } from '@/components/Card';
 
 // Game session interface
 export interface GameSession {
@@ -28,6 +29,18 @@ export interface GameSession {
     players: Player[];
     deckCards: CardType[];
     tableCards: Array<CardType & { x: number, y: number }>;
+    cardGroups?: Array<{
+        id: string;
+        cards: Array<{
+            id: string;
+            suit: Suit;
+            rank: Rank;
+            faceUp: boolean;
+        }>;
+        x: number;
+        y: number;
+        mode: 'fan' | 'stack';
+    }>;
     lastUpdate: number;
 }
 
@@ -117,6 +130,7 @@ export const firebaseService = {
                 players: data.players || [],
                 deckCards: data.deckCards || [],
                 tableCards: data.tableCards || [],
+                cardGroups: data.cardGroups || [], // Incluir cardGroups
                 lastUpdate: data.lastUpdate || Date.now()
             };
 
@@ -147,6 +161,7 @@ export const firebaseService = {
                 players: currentState.players || [],
                 deckCards: currentState.deckCards || [],
                 tableCards: currentState.tableCards || [],
+                cardGroups: currentState.cardGroups || [], // Incluir cardGroups
                 lastUpdate: currentState.lastUpdate || Date.now()
             };
 
@@ -162,6 +177,7 @@ export const firebaseService = {
                 players: newState.players || [],
                 deckCards: newState.deckCards || [],
                 tableCards: newState.tableCards || [],
+                cardGroups: newState.cardGroups || [], // Incluir cardGroups
                 lastUpdate: newState.lastUpdate
             };
 
@@ -190,6 +206,7 @@ export const firebaseService = {
                     players: data.players || [],
                     deckCards: data.deckCards || [],
                     tableCards: data.tableCards || [],
+                    cardGroups: data.cardGroups || [], // Incluir cardGroups
                     lastUpdate: data.lastUpdate || Date.now()
                 };
 

@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import Card, { Suit, Rank } from './Card';
 import Deck from './Deck';
 import PlayerHand from './PlayerHand';
 import TableCard from './TableCard';
+import CardGroup, { GroupedCard, CardGroupType } from './CardGroup';
+import CardStackModeDialog from './CardStackModeDialog';
 import { cn } from '@/lib/utils';
 
 export interface Player {
@@ -32,6 +33,7 @@ interface GameTableProps {
     x: number;
     y: number;
   }>;
+  cardGroups?: CardGroupType[];
   onDealCard: (playerId: string) => void;
   onShuffleDeck: () => void;
   onResetGame: () => void;
@@ -39,13 +41,17 @@ interface GameTableProps {
   onRemoveCardsDialog: () => void;
   onMoveCard: (cardId: string, fromType: 'hand' | 'table' | 'deck', toType: 'hand' | 'table', toPlayerId?: string, faceUp?: boolean, x?: number, y?: number) => void;
   onReorderPlayerCards: (playerId: string, startIndex: number, endIndex: number) => void;
+  onCreateCardGroup?: (cardIds: string[], x: number, y: number, mode: 'fan' | 'stack') => void;
+  onRemoveCardFromGroup?: (groupId: string, cardIndex: number, x?: number, y?: number) => void;
+  onAddCardToGroup?: (groupId: string, cardId: string) => void;
 }
 
 const GameTable: React.FC<GameTableProps> = ({
   currentPlayerId,
-  players = [], // Fornecer um valor padrão para evitar undefined
-  deckCards = [], // Fornecer um valor padrão para evitar undefined
-  tableCards = [], // Fornecer um valor padrão para evitar undefined
+  players = [],
+  deckCards = [],
+  tableCards = [],
+  cardGroups = [],
   onDealCard,
   onShuffleDeck,
   onResetGame,
@@ -53,6 +59,9 @@ const GameTable: React.FC<GameTableProps> = ({
   onRemoveCardsDialog,
   onMoveCard,
   onReorderPlayerCards,
+  onCreateCardGroup,
+  onRemoveCardFromGroup,
+  onAddCardToGroup
 }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dropPosition, setDropPosition] = useState<{ x: number, y: number } | null>(null);
@@ -66,6 +75,20 @@ const GameTable: React.FC<GameTableProps> = ({
     sourceId?: string;
     sourceIndex?: number;
   } | null>(null);
+
+  // Estado para o modal de escolha entre leque e pilha
+  const [showStackOptions, setShowStackOptions] = useState(false);
+  const [stackTarget, setStackTarget] = useState<{
+    draggedCardId: string;
+    targetCardId: string;
+    x: number;
+    y: number;
+    draggedSuit: Suit;
+    draggedRank: Rank;
+    targetSuit: Suit;
+    targetRank: Rank;
+  } | null>(null);
+
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Verificação de segurança para evitar erro quando currentPlayerId não é encontrado
@@ -88,7 +111,7 @@ const GameTable: React.FC<GameTableProps> = ({
       return;
     }
 
-    setIsDraggingOver(true);
+    setIsDraggingOver(true); // This uses the state variable
 
     if (tableRef.current) {
       const rect = tableRef.current.getBoundingClientRect();
@@ -99,8 +122,51 @@ const GameTable: React.FC<GameTableProps> = ({
     }
   };
 
+  const isOverCardGroup = (x: number, y: number): { isOver: boolean; groupId: string } | null => {
+    // Função para verificar se a posição de drop está sobre algum grupo de cartas
+    for (const group of cardGroups) {
+      // Considere uma área um pouco maior ao redor do grupo para facilitar o drop
+      // Ajuste esses valores conforme necessário
+      const groupLeft = group.x - 20;
+      const groupRight = group.x + 100;
+      const groupTop = group.y - 20;
+      const groupBottom = group.y + 140;
+
+      if (x >= groupLeft && x <= groupRight && y >= groupTop && y <= groupBottom) {
+        return {
+          isOver: true,
+          groupId: group.id
+        };
+      }
+    }
+
+    return null;
+  };
+
   const handleDragLeave = () => {
     setIsDraggingOver(false);
+  };
+
+  const isOverCard = (x: number, y: number): { isOver: boolean; cardId: string; suit: Suit; rank: Rank } | null => {
+    // Função para verificar se a posição de drop está sobre alguma carta na mesa
+    for (const card of tableCards) {
+      // Considerando que a carta tem aproximadamente 80px de largura e 112px de altura
+      const cardLeft = card.x;
+      const cardRight = card.x + 80;
+      const cardTop = card.y;
+      const cardBottom = card.y + 112;
+
+      if (x >= cardLeft && x <= cardRight && y >= cardTop && y <= cardBottom) {
+        return {
+          isOver: true,
+          cardId: card.id,
+          suit: card.suit,
+          rank: card.rank
+        };
+      }
+    }
+
+    return null;
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -125,11 +191,64 @@ const GameTable: React.FC<GameTableProps> = ({
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
 
       if (data.type === 'card') {
+        // Verificar se estamos dropando sobre outro grupo de cartas
+        const overGroupInfo = isOverCardGroup(dropPosition.x, dropPosition.y);
+
+        if (data.isGrouped && dropPosition) {
+          // Esta é uma carta sendo arrastada de um grupo
+          console.log("Carta arrastada de um grupo:", data);
+
+          if (onRemoveCardFromGroup) {
+            // Remover do grupo
+            onRemoveCardFromGroup(data.groupId, data.groupIndex, dropPosition.x, dropPosition.y);
+            setIsDraggingOver(false);
+            return;
+          }
+        }
+        if (overGroupInfo && overGroupInfo.isOver) {
+          // Estamos dropando sobre um grupo existente
+          // Adicionar a carta ao grupo
+          if (onAddCardToGroup) {
+            const draggedCardId = draggedCard?.id || data.id;
+            onAddCardToGroup(overGroupInfo.groupId, draggedCardId);
+            setIsDraggingOver(false);
+            return;
+          }
+        }
+
+        // Verificar se estamos dropando sobre outra carta
+        const overCardInfo = isOverCard(dropPosition.x, dropPosition.y);
+
+        if (overCardInfo && overCardInfo.isOver) {
+          // Estamos dropando sobre outra carta, mostrar o modal de escolha
+          const draggedCardId = draggedCard?.id || data.id;
+
+          setStackTarget({
+            draggedCardId: draggedCardId,
+            targetCardId: overCardInfo.cardId,
+            x: dropPosition.x,
+            y: dropPosition.y,
+            draggedSuit: data.suit,
+            draggedRank: data.rank,
+            targetSuit: overCardInfo.suit,
+            targetRank: overCardInfo.rank
+          });
+
+          // Armazenar a posição do mouse para o modal
+          setMousePosition({ x: e.clientX, y: e.clientY });
+
+          // Mostrar o modal de escolha do modo de agrupamento
+          setShowStackOptions(true);
+          setIsDraggingOver(false);
+          return;
+        }
+
         // Identify the source type of the card
         const sourceType = draggedCard?.sourceType || 'deck';
 
         // Set up the dragged card information
         const newDraggedCard = {
+          id: data.id,
           suit: data.suit,
           rank: data.rank,
           sourceType: sourceType,
@@ -197,14 +316,38 @@ const GameTable: React.FC<GameTableProps> = ({
     setDropPosition(null);
   };
 
+  const handleStackModeSelected = (mode: 'fan' | 'stack') => {
+    console.log("Stack mode selected:", mode, stackTarget, onCreateCardGroup);
+
+    if (stackTarget && onCreateCardGroup) {
+      // Criar um grupo de cartas com as duas cartas
+      const cardIds = [stackTarget.draggedCardId, stackTarget.targetCardId];
+      console.log("Creating card group with IDs:", cardIds);
+      onCreateCardGroup(cardIds, stackTarget.x, stackTarget.y, mode);
+    }
+
+    setShowStackOptions(false);
+    setStackTarget(null);
+    setDraggedCard(null);
+  };
+
   const handleDeckCardDrag = (e: React.DragEvent<HTMLDivElement>) => {
     if (deckCards.length === 0) return;
 
     setDraggedCard({
+      id: 'top-card', // Identifica como a carta do topo do deck
       suit: deckCards[deckCards.length - 1].suit,
       rank: deckCards[deckCards.length - 1].rank,
       sourceType: 'deck'
     });
+
+    // Certifique-se de que os dados estão sendo definidos corretamente no evento
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'card',
+      id: 'top-card',
+      suit: deckCards[deckCards.length - 1].suit,
+      rank: deckCards[deckCards.length - 1].rank
+    }));
   };
 
   const handleHandCardDrag = (e: React.DragEvent<HTMLDivElement>, cardIndex: number) => {
@@ -223,6 +366,17 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handleTableCardDrag = (cardId: string, suit: Suit, rank: Rank) => {
     setDraggedCard({
+      id: cardId,
+      suit,
+      rank,
+      sourceType: 'table',
+      sourceId: cardId
+    });
+  };
+
+  const handleGroupCardDrag = (cardId: string, suit: Suit, rank: Rank) => {
+    setDraggedCard({
+      id: cardId,
       suit,
       rank,
       sourceType: 'table',
@@ -329,8 +483,8 @@ const GameTable: React.FC<GameTableProps> = ({
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
-        {/* Table Cards */}
         <AnimatePresence>
+          {/* Table Cards */}
           {tableCards.map((card) => (
             <TableCard
               key={card.id}
@@ -341,6 +495,20 @@ const GameTable: React.FC<GameTableProps> = ({
               x={card.x}
               y={card.y}
               onDragStart={handleTableCardDrag}
+            />
+          ))}
+
+          {/* Card Groups - certifique-se de que temos cardGroups e que é um array */}
+          {cardGroups && Array.isArray(cardGroups) && cardGroups.map((group) => (
+            <CardGroup
+              key={group.id}
+              groupId={group.id}
+              cards={group.cards}
+              x={group.x}
+              y={group.y}
+              mode={group.mode}
+              onDragStart={handleGroupCardDrag}
+              onRemoveCard={onRemoveCardFromGroup}
             />
           ))}
         </AnimatePresence>
@@ -510,6 +678,18 @@ const GameTable: React.FC<GameTableProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Card Stack Mode Dialog */}
+      {stackTarget && (
+        <CardStackModeDialog
+          open={showStackOptions}
+          onOpenChange={setShowStackOptions}
+          onSelectMode={handleStackModeSelected}
+          baseSuit={stackTarget.draggedSuit}
+          baseRank={stackTarget.draggedRank}
+          mousePosition={mousePosition}
+        />
+      )}
     </div>
   );
 };
