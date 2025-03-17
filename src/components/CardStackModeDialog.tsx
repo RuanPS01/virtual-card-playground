@@ -23,7 +23,7 @@ const CardStackModeDialog = ({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="p-4 absolute max-w-md"
+                className="p-4 absolute w-auto"
                 style={{
                     position: 'fixed',
                     top: mousePosition ? `${mousePosition.y}px` : '50%',
@@ -34,7 +34,7 @@ const CardStackModeDialog = ({
                 <DialogHeader>
                     <DialogTitle>Como agrupar as cartas?</DialogTitle>
                 </DialogHeader>
-                <div className="flex justify-between gap-6 mt-4">
+                <div className="flex justify-between gap-12 mt-4">
                     <motion.div
                         className="text-center cursor-pointer"
                         whileHover={{ scale: 1.05 }}
@@ -46,8 +46,9 @@ const CardStackModeDialog = ({
                                     key={i}
                                     className="absolute"
                                     style={{
-                                        left: `${i * 15}px`,
-                                        top: `${i * 5}px`,
+                                        left: `${i * 25}px`,
+                                        top: `${i * 0}px`,
+                                        transform: `rotate(${i * 5}deg)`,
                                         zIndex: i
                                     }}
                                 >

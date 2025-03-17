@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -52,6 +52,7 @@ interface GameTableProps {
   onCreateCardGroup?: (cardIds: string[], x: number, y: number, mode: 'fan' | 'stack') => void;
   onRemoveCardFromGroup?: (groupId: string, cardIndex: number, x?: number, y?: number) => void;
   onAddCardToGroup?: (groupId: string, cardId: string) => void;
+  onMoveCardFromGroupToHand?: (groupId: string, cardIndex: number, playerId: string) => void;
 }
 
 const GameTable: React.FC<GameTableProps> = ({
@@ -69,7 +70,8 @@ const GameTable: React.FC<GameTableProps> = ({
   onReorderPlayerCards,
   onCreateCardGroup,
   onRemoveCardFromGroup,
-  onAddCardToGroup
+  onAddCardToGroup,
+  onMoveCardFromGroupToHand,
 }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dropPosition, setDropPosition] = useState<{ x: number, y: number } | null>(null);
@@ -83,6 +85,14 @@ const GameTable: React.FC<GameTableProps> = ({
     sourceId?: string;
     sourceIndex?: number;
   } | null>(null);
+
+  // Estado para grupos de cartas registrados para detecção
+  const [registeredGroups, setRegisteredGroups] = useState<{
+    [groupId: string]: {
+      rect: { left: number, right: number, top: number, bottom: number, width: number, height: number }
+    }
+  }>({});
+  const [currentHoveredGroup, setCurrentHoveredGroup] = useState<string | null>(null);
 
   // Estado para modais de confirmação
   const [showAddDeckConfirm, setShowAddDeckConfirm] = useState(false);
@@ -111,6 +121,70 @@ const GameTable: React.FC<GameTableProps> = ({
     ? players.filter(p => p.id !== currentPlayerId)
     : [];
 
+  // Registrar os grupos para detecção durante o arrasto
+  useEffect(() => {
+    const handleRegisterGroup = (e: CustomEvent) => {
+      const { groupId, rect } = e.detail;
+      setRegisteredGroups(prev => ({
+        ...prev,
+        [groupId]: { rect }
+      }));
+    };
+
+    const handleUnregisterGroup = (e: CustomEvent) => {
+      const { groupId } = e.detail;
+      setRegisteredGroups(prev => {
+        const updated = { ...prev };
+        delete updated[groupId];
+        return updated;
+      });
+    };
+
+    const handleGroupMoved = (e: CustomEvent) => {
+      // Quando um grupo é movido, vamos aguardar uma nova atualização do registro
+      const { groupId } = e.detail;
+
+      // Podemos opcionalmente, definir a posição como "pendente" para evitar detecções incorretas
+      setRegisteredGroups(prev => {
+        const updated = { ...prev };
+        if (updated[groupId]) {
+          updated[groupId] = { ...updated[groupId], needsUpdate: true };
+        }
+        return updated;
+      });
+    };
+
+    window.addEventListener('register-card-group' as any, handleRegisterGroup);
+    window.addEventListener('unregister-card-group' as any, handleUnregisterGroup);
+    window.addEventListener('cardgroup-moved' as any, handleGroupMoved);
+
+    return () => {
+      window.removeEventListener('register-card-group' as any, handleRegisterGroup);
+      window.removeEventListener('unregister-card-group' as any, handleUnregisterGroup);
+      window.removeEventListener('cardgroup-moved' as any, handleGroupMoved);
+    };
+  }, []);
+
+  // Verificar se uma posição está sobre um grupo de cartas
+  const isOverCardGroup = (clientX: number, clientY: number): { isOver: boolean; groupId: string } | null => {
+    for (const [groupId, data] of Object.entries(registeredGroups)) {
+      const { rect } = data;
+      // Verificar se a posição está dentro do retângulo do grupo
+      if (
+        clientX >= (rect.left - 200) &&
+        clientX <= (rect.right + 200) &&
+        clientY >= (rect.top - 200) &&
+        clientY <= (rect.bottom + 200)
+      ) {
+        return {
+          isOver: true,
+          groupId
+        };
+      }
+    }
+    return null;
+  };
+
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
 
@@ -123,7 +197,35 @@ const GameTable: React.FC<GameTableProps> = ({
       return;
     }
 
-    setIsDraggingOver(true); // This uses the state variable
+    setIsDraggingOver(true);
+
+    // Verificar se estamos sobre um grupo de cartas
+    const groupInfo = isOverCardGroup(e.clientX, e.clientY);
+
+    if (groupInfo && groupInfo.isOver) {
+      // Atualizar o grupo que está sendo destacado
+      if (currentHoveredGroup !== groupInfo.groupId) {
+        // Limpar highlight anterior se houver
+        if (currentHoveredGroup) {
+          window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+            detail: { groupId: currentHoveredGroup }
+          }));
+        }
+
+        // Destacar novo grupo
+        window.dispatchEvent(new CustomEvent('dragover-card-group', {
+          detail: { groupId: groupInfo.groupId }
+        }));
+
+        setCurrentHoveredGroup(groupInfo.groupId);
+      }
+    } else if (currentHoveredGroup) {
+      // Limpar destacamento se saímos de um grupo
+      window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+        detail: { groupId: currentHoveredGroup }
+      }));
+      setCurrentHoveredGroup(null);
+    }
 
     if (tableRef.current) {
       const rect = tableRef.current.getBoundingClientRect();
@@ -134,29 +236,21 @@ const GameTable: React.FC<GameTableProps> = ({
     }
   };
 
-  const isOverCardGroup = (x: number, y: number): { isOver: boolean; groupId: string } | null => {
-    // Função para verificar se a posição de drop está sobre algum grupo de cartas
-    for (const group of cardGroups) {
-      // Considere uma área um pouco maior ao redor do grupo para facilitar o drop
-      // Ajuste esses valores conforme necessário
-      const groupLeft = group.x - 20;
-      const groupRight = group.x + 100;
-      const groupTop = group.y - 20;
-      const groupBottom = group.y + 140;
-
-      if (x >= groupLeft && x <= groupRight && y >= groupTop && y <= groupBottom) {
-        return {
-          isOver: true,
-          groupId: group.id
-        };
-      }
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    // Verificar se realmente saímos da mesa e não apenas entramos em um elemento filho
+    if (e.currentTarget.contains(e.relatedTarget as Node)) {
+      return;
     }
 
-    return null;
-  };
-
-  const handleDragLeave = () => {
     setIsDraggingOver(false);
+
+    // Limpar qualquer highlighting de grupo
+    if (currentHoveredGroup) {
+      window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+        detail: { groupId: currentHoveredGroup }
+      }));
+      setCurrentHoveredGroup(null);
+    }
   };
 
   const isOverCard = (x: number, y: number): { isOver: boolean; cardId: string; suit: Suit; rank: Rank } | null => {
@@ -191,11 +285,29 @@ const GameTable: React.FC<GameTableProps> = ({
     if (playerHandElement) {
       // If we're dropping on a player hand, we'll let handlePlayerAreaDrop handle it
       setIsDraggingOver(false);
+
+      // Limpar qualquer highlighting de grupo
+      if (currentHoveredGroup) {
+        window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+          detail: { groupId: currentHoveredGroup }
+        }));
+        setCurrentHoveredGroup(null);
+      }
+
       return;
     }
 
     if (!dropPosition) {
       setIsDraggingOver(false);
+
+      // Limpar qualquer highlighting de grupo
+      if (currentHoveredGroup) {
+        window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+          detail: { groupId: currentHoveredGroup }
+        }));
+        setCurrentHoveredGroup(null);
+      }
+
       return;
     }
 
@@ -203,27 +315,37 @@ const GameTable: React.FC<GameTableProps> = ({
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
 
       if (data.type === 'card') {
-        // Verificar se estamos dropando sobre outro grupo de cartas
-        const overGroupInfo = isOverCardGroup(dropPosition.x, dropPosition.y);
+        // Verificar se estamos dropando sobre um grupo de cartas
+        const groupInfo = isOverCardGroup(e.clientX, e.clientY);
+
+        if (groupInfo && groupInfo.isOver) {
+          // Estamos dropando sobre um grupo
+          if (onAddCardToGroup) {
+            const draggedCardId = draggedCard?.id || data.id;
+            onAddCardToGroup(groupInfo.groupId, draggedCardId);
+
+            // Limpar estados
+            setIsDraggingOver(false);
+            setDraggedCard(null);
+            setDropPosition(null);
+
+            // Limpar highlighting
+            window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+              detail: { groupId: groupInfo.groupId }
+            }));
+            setCurrentHoveredGroup(null);
+
+            return;
+          }
+        }
 
         if (data.isGrouped && dropPosition) {
           // Esta é uma carta sendo arrastada de um grupo
-          console.log("Carta arrastada de um grupo:", data);
-
           if (onRemoveCardFromGroup) {
             // Remover do grupo
             onRemoveCardFromGroup(data.groupId, data.groupIndex, dropPosition.x, dropPosition.y);
             setIsDraggingOver(false);
-            return;
-          }
-        }
-        if (overGroupInfo && overGroupInfo.isOver) {
-          // Estamos dropando sobre um grupo existente
-          // Adicionar a carta ao grupo
-          if (onAddCardToGroup) {
-            const draggedCardId = draggedCard?.id || data.id;
-            onAddCardToGroup(overGroupInfo.groupId, draggedCardId);
-            setIsDraggingOver(false);
+            setCurrentHoveredGroup(null);
             return;
           }
         }
@@ -252,6 +374,7 @@ const GameTable: React.FC<GameTableProps> = ({
           // Mostrar o modal de escolha do modo de agrupamento
           setShowStackOptions(true);
           setIsDraggingOver(false);
+          setCurrentHoveredGroup(null);
           return;
         }
 
@@ -298,6 +421,14 @@ const GameTable: React.FC<GameTableProps> = ({
     }
 
     setIsDraggingOver(false);
+
+    // Limpar qualquer highlighting de grupo
+    if (currentHoveredGroup) {
+      window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+        detail: { groupId: currentHoveredGroup }
+      }));
+      setCurrentHoveredGroup(null);
+    }
   };
 
   const handleCardOptionSelected = (faceUp: boolean) => {
@@ -329,12 +460,9 @@ const GameTable: React.FC<GameTableProps> = ({
   };
 
   const handleStackModeSelected = (mode: 'fan' | 'stack') => {
-    console.log("Stack mode selected:", mode, stackTarget, onCreateCardGroup);
-
     if (stackTarget && onCreateCardGroup) {
       // Criar um grupo de cartas com as duas cartas
       const cardIds = [stackTarget.draggedCardId, stackTarget.targetCardId];
-      console.log("Creating card group with IDs:", cardIds);
       onCreateCardGroup(cardIds, stackTarget.x, stackTarget.y, mode);
     }
 
@@ -406,7 +534,12 @@ const GameTable: React.FC<GameTableProps> = ({
       const data = JSON.parse(e.dataTransfer.getData('application/json'));
 
       if (data.type === 'card') {
-        if (draggedCard.sourceType === 'deck') {
+        if (data.isGrouped && data.groupId) {
+          // Mover diretamente do grupo para a mão do jogador
+          if (onMoveCardFromGroupToHand) {
+            onMoveCardFromGroupToHand(data.groupId, data.groupIndex, playerId);
+          }
+        } else if (draggedCard.sourceType === 'deck') {
           // Move from deck directly to player's hand
           onMoveCard('top-card', 'deck', 'hand', playerId, true);
         } else if (draggedCard.sourceType === 'table') {
@@ -432,6 +565,14 @@ const GameTable: React.FC<GameTableProps> = ({
 
     setDraggedCard(null);
     setDropPosition(null);
+
+    // Limpar qualquer highlighting de grupo
+    if (currentHoveredGroup) {
+      window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+        detail: { groupId: currentHoveredGroup }
+      }));
+      setCurrentHoveredGroup(null);
+    }
   };
 
   // Posicionamento estratégico dos jogadores em torno da mesa
@@ -521,6 +662,21 @@ const GameTable: React.FC<GameTableProps> = ({
               mode={group.mode}
               onDragStart={handleGroupCardDrag}
               onRemoveCard={onRemoveCardFromGroup}
+              onMoveToHand={onMoveCardFromGroupToHand ?
+                (cardIndex) => onMoveCardFromGroupToHand(group.id, cardIndex, currentPlayerId) :
+                undefined}
+              onFlipCard={onRemoveCardFromGroup ?
+                (groupId, cardIndex) => {
+                  // Para virar uma carta, a implementação depende da estrutura do seu backend
+                  // Aqui estamos apenas toggling a propriedade faceUp e atualizando o grupo
+                  const currentCard = group.cards[cardIndex];
+                  if (currentCard) {
+                    const updatedCard = { ...currentCard, faceUp: !currentCard.faceUp };
+                    const updatedGroup = { ...group };
+                    updatedGroup.cards[cardIndex] = updatedCard;
+                  }
+                } :
+                undefined}
             />
           ))}
         </AnimatePresence>

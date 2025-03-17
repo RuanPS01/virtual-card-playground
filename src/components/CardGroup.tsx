@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { GripVertical } from 'lucide-react';
 import Card, { Suit, Rank } from './Card';
 import { cn } from '@/lib/utils';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 export interface GroupedCard {
     id: string;
@@ -27,6 +33,8 @@ interface CardGroupProps {
     onDragStart: (cardId: string, suit: Suit, rank: Rank) => void;
     groupId: string;
     onRemoveCard?: (groupId: string, cardIndex: number) => void;
+    onMoveToHand?: (cardIndex: number) => void;
+    onFlipCard?: (groupId: string, cardIndex: number) => void;
 }
 
 const CardGroup: React.FC<CardGroupProps> = ({
@@ -36,11 +44,81 @@ const CardGroup: React.FC<CardGroupProps> = ({
     mode,
     onDragStart,
     groupId,
-    onRemoveCard
+    onRemoveCard,
+    onMoveToHand,
+    onFlipCard,
 }) => {
-    const [rotation] = React.useState(() => Math.random() * 20 - 10);
-    const [lastClickTime, setLastClickTime] = React.useState<number>(0);
-    const [lastClickedCard, setLastClickedCard] = React.useState<number>(-1);
+    const [rotation] = useState(() => Math.random() * 20 - 10);
+    const [lastClickTime, setLastClickTime] = useState<number>(0);
+    const [lastClickedCard, setLastClickedCard] = useState<number>(-1);
+    const [currentPosition, setCurrentPosition] = useState({ x, y });
+    const [isDraggedOver, setIsDraggedOver] = useState(false);
+    const groupRef = useRef<HTMLDivElement>(null);
+
+    // Atualizar a posição atual quando as props mudam
+    useEffect(() => {
+        setCurrentPosition({ x, y });
+    }, [x, y]);
+
+    // Registrar o grupo para detecção global de dragover
+    useEffect(() => {
+        const registerGroupPosition = () => {
+            if (groupRef.current) {
+                const rect = groupRef.current.getBoundingClientRect();
+                const event = new CustomEvent('register-card-group', {
+                    detail: {
+                        groupId,
+                        rect: {
+                            left: rect.left,
+                            right: rect.right,
+                            top: rect.top,
+                            bottom: rect.bottom,
+                            width: rect.width,
+                            height: rect.height
+                        }
+                    }
+                });
+                window.dispatchEvent(event);
+            }
+        };
+
+        registerGroupPosition();
+
+        // Registrar novamente quando a posição mudar
+        const interval = setInterval(registerGroupPosition, 500);
+
+        // Limpar
+        return () => {
+            clearInterval(interval);
+            // Desregistrar ao desmontar
+            window.dispatchEvent(new CustomEvent('unregister-card-group', {
+                detail: { groupId }
+            }));
+        };
+    }, [groupId, currentPosition.x, currentPosition.y]);
+
+    // Evento de dragover para feedback visual
+    useEffect(() => {
+        const handleDragOverGroup = (e: CustomEvent) => {
+            if (e.detail.groupId === groupId) {
+                setIsDraggedOver(true);
+            }
+        };
+
+        const handleDragLeaveGroup = (e: CustomEvent) => {
+            if (e.detail.groupId === groupId) {
+                setIsDraggedOver(false);
+            }
+        };
+
+        window.addEventListener('dragover-card-group' as any, handleDragOverGroup);
+        window.addEventListener('dragleave-card-group' as any, handleDragLeaveGroup);
+
+        return () => {
+            window.removeEventListener('dragover-card-group' as any, handleDragOverGroup);
+            window.removeEventListener('dragleave-card-group' as any, handleDragLeaveGroup);
+        };
+    }, [groupId]);
 
     const handleDragStart = (e: React.DragEvent<HTMLDivElement>, card: GroupedCard, index: number) => {
         e.dataTransfer.setData('application/json', JSON.stringify({
@@ -61,7 +139,6 @@ const CardGroup: React.FC<CardGroupProps> = ({
         const now = Date.now();
         // Check if this is a double click (within 300ms)
         if (lastClickedCard === index && now - lastClickTime < 300) {
-            console.log("Double click detected on card", index, "in group", groupId);
             if (onRemoveCard) {
                 onRemoveCard(groupId, index);
             }
@@ -70,28 +147,46 @@ const CardGroup: React.FC<CardGroupProps> = ({
         setLastClickedCard(index);
     };
 
-    // Calcula a posição do botão de arrasto com base no modo e no número de cartas
     const getHandlePosition = () => {
         if (mode === 'fan') {
             const lastCardOffset = (cards.length - 1) * 25;
             const lastCardYOffset = (cards.length - 1) * 5;
             return {
-                x: lastCardOffset + 10, // Posicionar após a última carta
-                y: lastCardYOffset + 140 // Posicionar na parte inferior do grupo
+                x: lastCardOffset + 10,
+                y: lastCardYOffset + 140
             };
         } else {
-            // Modo stack
             return {
-                x: 10, // Centralizar no grupo
-                y: 140 // Posicionar na parte inferior
+                x: 10,
+                y: 140
             };
         }
     };
 
     const handlePosition = getHandlePosition();
 
+    // Calcular o tamanho da área de interação baseado no modo e no número de cartas
+    const getAreaSize = () => {
+        if (mode === 'fan') {
+            // Para leque, considerar a extensão do leque
+            return {
+                width: Math.max(120, (cards.length - 1) * 25 + 80) + 40, // Largura base da carta + extensão do leque + padding
+                height: 130 + ((cards.length - 1) * 5) + 40 // Altura da carta + dimensão vertical do leque + padding
+            };
+        } else {
+            // Para pilha
+            return {
+                width: 120 + 40, // Largura da carta + padding
+                height: 130 + (cards.length * 2) + 40 // Altura da carta + sobreposição da pilha + padding
+            };
+        }
+    };
+
+    const areaSize = getAreaSize();
+
     return (
         <motion.div
+            ref={groupRef}
             className="absolute"
             style={{
                 left: x,
@@ -117,17 +212,38 @@ const CardGroup: React.FC<CardGroupProps> = ({
             drag
             dragMomentum={false}
             onDragEnd={(e, info) => {
+                // Atualizar posição local
+                const newX = x + info.offset.x;
+                const newY = y + info.offset.y;
+                setCurrentPosition({ x: newX, y: newY });
+
                 // Disparar evento para atualizar a posição no Firebase
                 const event = new CustomEvent('cardgroup-moved', {
                     detail: {
                         groupId: groupId,
-                        x: x + info.offset.x,
-                        y: y + info.offset.y
+                        x: newX,
+                        y: newY
                     }
                 });
                 window.dispatchEvent(event);
             }}
         >
+            {/* Área de detecção pontilhada */}
+            <div
+                className={cn(
+                    "absolute border-2 border-dashed rounded-lg transition-colors",
+                    isDraggedOver ? "border-blue-500 bg-blue-100 bg-opacity-30" : "border-transparent"
+                )}
+                style={{
+                    width: areaSize.width,
+                    height: areaSize.height,
+                    left: -(areaSize.width - 80) / 2, // Centralizar na carta com ajuste
+                    top: -(areaSize.height - 130) / 2, // Centralizar na carta com ajuste
+                    zIndex: 5
+                }}
+                data-card-group-dropzone={groupId}
+            />
+
             <div className={cn("relative")}>
                 {cards.map((card, index) => {
                     const offset = mode === 'fan'
@@ -135,27 +251,43 @@ const CardGroup: React.FC<CardGroupProps> = ({
                         : { x: index * 2, y: index * 2, rotate: 0 };
 
                     return (
-                        <div
-                            key={card.id}
-                            className="absolute cursor-pointer"
-                            style={{
-                                left: offset.x,
-                                top: offset.y,
-                                transform: `rotate(${offset.rotate}deg)`,
-                                zIndex: index
-                            }}
-                            draggable={true}
-                            onDragStart={(e) => handleDragStart(e, card, index)}
-                            onClick={() => handleCardClick(index)}
-                            title="Double-click to remove card from group"
-                        >
-                            <Card
-                                suit={card.suit}
-                                rank={card.rank}
-                                faceUp={card.faceUp}
-                                draggable={false}
-                            />
-                        </div>
+                        <ContextMenu key={card.id}>
+                            <ContextMenuTrigger>
+                                <div
+                                    className="absolute cursor-pointer"
+                                    style={{
+                                        left: offset.x,
+                                        top: offset.y,
+                                        transform: `rotate(${offset.rotate}deg)`,
+                                        zIndex: index + 10 // Garantir que as cartas fiquem acima da área pontilhada
+                                    }}
+                                    draggable={true}
+                                    onDragStart={(e) => handleDragStart(e, card, index)}
+                                    onClick={() => handleCardClick(index)}
+                                    title="Clique duplo para remover carta do grupo. Clique direito para mais opções."
+                                >
+                                    <Card
+                                        suit={card.suit}
+                                        rank={card.rank}
+                                        faceUp={card.faceUp}
+                                        draggable={false}
+                                    />
+                                </div>
+                            </ContextMenuTrigger>
+                            <ContextMenuContent>
+                                <ContextMenuItem onClick={() => onRemoveCard && onRemoveCard(groupId, index)}>
+                                    Remover para a mesa
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => onMoveToHand && onMoveToHand(index)}>
+                                    Mover para minha mão
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => {
+                                    if (onFlipCard) onFlipCard(groupId, index);
+                                }}>
+                                    Virar carta
+                                </ContextMenuItem>
+                            </ContextMenuContent>
+                        </ContextMenu>
                     );
                 })}
 

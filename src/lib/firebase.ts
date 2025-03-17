@@ -87,10 +87,11 @@ export const firebaseService = {
             const gameState = snapshot.val() as GameSession;
             const playerId = uuidv4();
 
-            // Ensure players array exists
+            // Garantir que players e cardGroups existam
             const players = gameState.players || [];
+            const cardGroups = gameState.cardGroups || [];
 
-            // Add player to the room
+            // Adicionar jogador à sala
             const position = players.length;
             players.push({
                 id: playerId,
@@ -99,9 +100,10 @@ export const firebaseService = {
                 position
             });
 
-            // Update the room data with the new player
+            // Atualizar o estado da sala
             await update(roomRef, {
                 players: players,
+                cardGroups: cardGroups, // Manter os grupos de cartas existentes
                 lastUpdate: Date.now()
             });
 
@@ -124,13 +126,13 @@ export const firebaseService = {
 
             const data = snapshot.val();
 
-            // Ensure all required properties exist
+            // Garantir que todas as propriedades existam com valores padrão seguros
             const safeGameState: GameSession = {
                 roomId: data.roomId || roomId,
                 players: data.players || [],
                 deckCards: data.deckCards || [],
                 tableCards: data.tableCards || [],
-                cardGroups: data.cardGroups || [], // Incluir cardGroups
+                cardGroups: data.cardGroups || [],
                 lastUpdate: data.lastUpdate || Date.now()
             };
 
@@ -195,18 +197,18 @@ export const firebaseService = {
     subscribeToRoom: (roomId: string, callback: (gameState: GameSession) => void) => {
         const roomRef = ref(database, `rooms/${roomId}`);
 
-        // Set up real-time listener
+        // Configurar listener de tempo real
         onValue(roomRef, (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
 
-                // Ensure all required properties exist
+                // Garantir valores seguros
                 const safeGameState: GameSession = {
                     roomId: data.roomId || roomId,
                     players: data.players || [],
                     deckCards: data.deckCards || [],
                     tableCards: data.tableCards || [],
-                    cardGroups: data.cardGroups || [], // Incluir cardGroups
+                    cardGroups: data.cardGroups || null,
                     lastUpdate: data.lastUpdate || Date.now()
                 };
 
@@ -214,7 +216,7 @@ export const firebaseService = {
             }
         });
 
-        // Return unsubscribe function
+        // Retornar função de unsubscribe
         return () => off(roomRef);
     },
 

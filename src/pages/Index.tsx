@@ -71,7 +71,6 @@ const Index = () => {
     });
   };
 
-  // Verifique se está realmente encontrando as cartas na mesa
   const handleCreateCardGroup = async (cardIds: string[], x: number, y: number, mode: 'fan' | 'stack') => {
     console.log("handleCreateCardGroup called with:", cardIds, x, y, mode);
 
@@ -85,43 +84,48 @@ const Index = () => {
       // Nova lista de cartas na mesa (sem as que serão agrupadas)
       const newTableCards = [...(state.tableCards || [])];
 
-      // Para debugar
-      console.log("Table cards before:", JSON.stringify(newTableCards));
-
       // Para cada id de carta
       for (const cardId of cardIds) {
-        // Encontrar a carta na mesa
-        const cardIndex = newTableCards.findIndex(c => c.id === cardId);
+        let foundCard = null;
 
-        if (cardIndex >= 0) {
-          // Remover a carta da mesa e adicioná-la ao grupo
-          const card = newTableCards.splice(cardIndex, 1)[0];
-          groupCards.push({
-            id: card.id,
-            suit: card.suit,
-            rank: card.rank,
-            faceUp: card.faceUp
-          });
-        } else if (cardId === 'top-card' && state.deckCards.length > 0) {
-          // Caso especial para carta do baralho
-          const topCard = state.deckCards[state.deckCards.length - 1];
+        // Procurar na mesa
+        const tableCardIndex = newTableCards.findIndex(c => c.id === cardId);
+        if (tableCardIndex >= 0) {
+          foundCard = newTableCards.splice(tableCardIndex, 1)[0];
+        }
+
+        // Se não foi encontrada na mesa, procurar no baralho
+        if (!foundCard && cardId === 'top-card' && state.deckCards.length > 0) {
+          foundCard = state.deckCards[state.deckCards.length - 1];
           state.deckCards = state.deckCards.slice(0, -1);
+        }
 
+        // Se ainda não foi encontrada, procurar nas mãos dos jogadores
+        if (!foundCard) {
+          for (const player of state.players) {
+            if (!player.cards) continue;
+
+            const handCardIndex = player.cards.findIndex(c => c.id === cardId);
+            if (handCardIndex >= 0) {
+              foundCard = player.cards.splice(handCardIndex, 1)[0];
+              break;
+            }
+          }
+        }
+
+        // Se encontrou a carta, adicionar ao grupo
+        if (foundCard) {
           groupCards.push({
-            id: uuidv4(),
-            suit: topCard.suit,
-            rank: topCard.rank,
-            faceUp: true
+            id: foundCard.id || uuidv4(),
+            suit: foundCard.suit,
+            rank: foundCard.rank,
+            faceUp: foundCard.faceUp || true
           });
         }
       }
 
-      // Para debugar
-      console.log("Cards found for grouping:", JSON.stringify(groupCards));
-      console.log("Table cards after removal:", JSON.stringify(newTableCards));
-
+      // Criar o novo grupo se houver cartas
       if (groupCards.length > 0) {
-        // Criar o novo grupo
         const newGroup: CardGroupType = {
           id: uuidv4(),
           cards: groupCards,
@@ -130,17 +134,11 @@ const Index = () => {
           mode
         };
 
-        // Para debugar
-        console.log("New group created:", JSON.stringify(newGroup));
-        console.log("Current cardGroups:", JSON.stringify(state.cardGroups));
+        // Adicionar o grupo
+        state.cardGroups.push(newGroup);
 
-        // Adicionar o grupo à lista
-        state.cardGroups = [...state.cardGroups, newGroup];
+        // Atualizar a lista de cartas da mesa
         state.tableCards = newTableCards;
-
-        // Para debugar
-        console.log("Updated cardGroups:", JSON.stringify(state.cardGroups));
-        console.log("Updated tableCards:", JSON.stringify(state.tableCards));
       }
 
       return state;
@@ -163,82 +161,80 @@ const Index = () => {
         return state;
       }
 
-      // Encontrar o grupo
+      // Encontrar o grupo específico
       const groupIndex = state.cardGroups.findIndex(g => g.id === groupId);
       if (groupIndex < 0) {
         console.log("Grupo não encontrado:", groupId);
         return state;
       }
 
+      // Variável para armazenar a carta a ser adicionada
+      let cardToAdd: GroupedCard | null = null;
+
       // Verificar se cardId é uma referência para a carta do topo do baralho
       if (cardId === 'top-card' && state.deckCards && state.deckCards.length > 0) {
-        // Obter a carta do topo do baralho
         const topCard = state.deckCards[state.deckCards.length - 1];
 
         // Remover do baralho
         state.deckCards = state.deckCards.slice(0, -1);
 
-        // Criar um ID único para a carta
-        const uniqueCardId = uuidv4();
-
-        // Adicionar ao grupo
-        const cardToAdd: GroupedCard = {
-          id: uniqueCardId,
+        cardToAdd = {
+          id: topCard.id || uuidv4(),
           suit: topCard.suit,
           rank: topCard.rank,
           faceUp: true
         };
-
-        state.cardGroups[groupIndex].cards.push(cardToAdd);
-        return state;
       }
 
-      // Verificar se a carta está na mesa
-      let foundInTable = false;
-      if (state.tableCards) {
+      // Se não foi do baralho, procurar na mesa
+      if (!cardToAdd && state.tableCards) {
         const tableCardIndex = state.tableCards.findIndex(c => c.id === cardId);
-        if (tableCardIndex >= 0) {
-          // Remover a carta da mesa
+
+        if (tableCardIndex !== -1) {
           const card = state.tableCards[tableCardIndex];
+
+          // Remover a carta da mesa
           state.tableCards.splice(tableCardIndex, 1);
 
-          // Adicionar ao grupo
-          const cardToAdd: GroupedCard = {
+          cardToAdd = {
             id: card.id,
             suit: card.suit,
             rank: card.rank,
             faceUp: card.faceUp
           };
-
-          state.cardGroups[groupIndex].cards.push(cardToAdd);
-          foundInTable = true;
         }
       }
 
-      // Se não estiver na mesa, verificar nas mãos dos jogadores
-      if (!foundInTable && state.players) {
-        for (let i = 0; i < state.players.length; i++) {
-          const player = state.players[i];
+      // Se não foi da mesa, procurar nas mãos dos jogadores
+      if (!cardToAdd) {
+        for (const player of state.players) {
           if (!player.cards) continue;
 
           const handCardIndex = player.cards.findIndex(c => c.id === cardId);
-          if (handCardIndex >= 0) {
+
+          if (handCardIndex !== -1) {
             // Remover a carta da mão do jogador
             const card = player.cards[handCardIndex];
             player.cards.splice(handCardIndex, 1);
 
-            // Adicionar ao grupo
-            const cardToAdd: GroupedCard = {
+            cardToAdd = {
               id: card.id,
               suit: card.suit,
               rank: card.rank,
-              faceUp: true // Cartas da mão sempre viram para cima quando movidas
+              faceUp: true // Cartas da mão sempre viram para cima
             };
 
-            state.cardGroups[groupIndex].cards.push(cardToAdd);
             break;
           }
         }
+      }
+
+      // Se encontrou a carta, adicionar ao grupo
+      if (cardToAdd) {
+        state.cardGroups[groupIndex].cards.push(cardToAdd);
+      } else {
+        console.log("Carta não encontrada:", cardId);
+        toast.error('Carta não encontrada para adicionar ao grupo');
       }
 
       return state;
@@ -468,20 +464,92 @@ const Index = () => {
     }
   };
 
+  const handleMoveCardFromGroupToHand = async (groupId: string, cardIndex: number, playerId: string) => {
+    console.log("Movendo carta", cardIndex, "do grupo", groupId, "para a mão do jogador", playerId);
+
+    const success = await updateGameState(state => {
+      // Verificar se o grupo existe
+      if (!state.cardGroups) {
+        console.log("Nenhum grupo de cartas encontrado");
+        return state;
+      }
+
+      // Encontrar o grupo
+      const groupIndex = state.cardGroups.findIndex(g => g.id === groupId);
+      if (groupIndex < 0) {
+        console.log("Grupo não encontrado:", groupId);
+        return state;
+      }
+
+      // Verificar se o índice da carta é válido
+      const group = state.cardGroups[groupIndex];
+      if (cardIndex < 0 || cardIndex >= group.cards.length) {
+        console.log("Índice de carta inválido:", cardIndex);
+        return state;
+      }
+
+      // Encontrar o jogador
+      const playerIndex = state.players.findIndex(p => p.id === playerId);
+      if (playerIndex < 0) {
+        console.log("Jogador não encontrado:", playerId);
+        return state;
+      }
+
+      // Garantir que o jogador tenha um array de cartas
+      if (!state.players[playerIndex].cards) {
+        state.players[playerIndex].cards = [];
+      }
+
+      // Remover a carta do grupo
+      const removedCard = { ...group.cards[cardIndex] };
+      group.cards.splice(cardIndex, 1);
+
+      // Se o grupo ficar vazio, remover o grupo
+      if (group.cards.length === 0) {
+        state.cardGroups.splice(groupIndex, 1);
+      }
+
+      // Adicionar a carta à mão do jogador (sempre virada para cima)
+      state.players[playerIndex].cards.push({
+        id: removedCard.id,
+        suit: removedCard.suit,
+        rank: removedCard.rank,
+        faceUp: true
+      });
+
+      return state;
+    });
+
+    if (success) {
+      toast.success('Carta movida para sua mão');
+    } else {
+      toast.error('Erro ao mover carta para sua mão');
+    }
+  };
+
+
   // Handle resetting the game
   const handleResetGame = async () => {
     const success = await updateGameState(state => {
-      // Gather all cards back to the deck
-      const allCards = [
+      // Reunir todas as cartas, incluindo as dos grupos
+      let allCards = [
         ...state.deckCards,
         ...state.tableCards,
-        ...state.players.flatMap(player => player.cards)
+        ...state.players.flatMap(player => player.cards || [])
       ];
 
+      // Adicionar as cartas dos grupos
+      if (state.cardGroups && state.cardGroups.length > 0) {
+        const groupCards = state.cardGroups.flatMap(group => group.cards || []);
+        allCards = [...allCards, ...groupCards];
+      }
+
+      // Atualizar o estado do jogo
       state.deckCards = shuffleDeck(allCards);
       state.tableCards = [];
+      state.cardGroups = []; // Limpar os grupos de cartas
 
-      // Clear all players' hands
+      // Limpar as mãos dos jogadores
       state.players.forEach(player => {
         player.cards = [];
       });
@@ -843,6 +911,7 @@ const Index = () => {
           onCreateCardGroup={handleCreateCardGroup}
           onRemoveCardFromGroup={handleRemoveCardFromGroup}
           onAddCardToGroup={handleAddCardToGroup}
+          onMoveCardFromGroupToHand={handleMoveCardFromGroupToHand}
         />
       </div>
 
