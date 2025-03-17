@@ -23,8 +23,4 @@ dist-ssr
 *.sln
 *.sw?
 
-json_files_of_project.txt
-ts_files_of_project.txt
-tsx_files_of_project.txt
-js_files_of_project.txt
-css_files_of_project.txt
+*.txt
