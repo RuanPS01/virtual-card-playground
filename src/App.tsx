@@ -14,7 +14,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner position="top-center" closeButton />
-      <BrowserRouter>
+      <BrowserRouter basename={"/virtual-card-playground"}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="*" element={<NotFound />} />
