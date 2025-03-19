@@ -5,13 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 // Firebase configuration
 // Replace with your own Firebase configuration from the Firebase console
 const firebaseConfig = {
-    apiKey: "AIzaSyAQdLCw8JPfRfZJdHgjsM9CFArbHWL-SCQ",
-    authDomain: "virtual-card-playground.firebaseapp.com",
-    databaseURL: "https://virtual-card-playground-default-rtdb.firebaseio.com",
-    projectId: "virtual-card-playground",
-    storageBucket: "virtual-card-playground.firebasestorage.app",
-    messagingSenderId: "1095507757324",
-    appId: "1:1095507757324:web:e03d82d3aa60188d926129"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
