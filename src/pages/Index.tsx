@@ -860,6 +860,36 @@ const Index = () => {
     }
   };
 
+  // Handle updating card group position
+  const handleUpdateGroupPosition = async (groupId: string, x: number, y: number) => {
+    console.log("Atualizando posição do grupo", groupId, "para", x, y);
+
+    const success = await updateGameState(state => {
+      // Verificar se o grupo existe
+      if (!state.cardGroups) {
+        console.log("Nenhum grupo de cartas encontrado");
+        return state;
+      }
+
+      // Encontrar o grupo
+      const groupIndex = state.cardGroups.findIndex(g => g.id === groupId);
+      if (groupIndex < 0) {
+        console.log("Grupo não encontrado:", groupId);
+        return state;
+      }
+
+      // Atualizar a posição do grupo
+      state.cardGroups[groupIndex].x = x;
+      state.cardGroups[groupIndex].y = y;
+
+      return state;
+    });
+
+    if (!success) {
+      toast.error('Erro ao atualizar posição do grupo de cartas');
+    }
+  };
+
   // Render loading state
   if (isLoading) {
     return (
@@ -912,6 +942,7 @@ const Index = () => {
           onRemoveCardFromGroup={handleRemoveCardFromGroup}
           onAddCardToGroup={handleAddCardToGroup}
           onMoveCardFromGroupToHand={handleMoveCardFromGroupToHand}
+          onUpdateGroupPosition={handleUpdateGroupPosition} // Nova prop
         />
       </div>
 

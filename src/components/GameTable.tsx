@@ -53,6 +53,7 @@ interface GameTableProps {
   onRemoveCardFromGroup?: (groupId: string, cardIndex: number, x?: number, y?: number) => void;
   onAddCardToGroup?: (groupId: string, cardId: string) => void;
   onMoveCardFromGroupToHand?: (groupId: string, cardIndex: number, playerId: string) => void;
+  onUpdateGroupPosition?: (groupId: string, x: number, y: number) => void; // Novo callback
 }
 
 const GameTable: React.FC<GameTableProps> = ({
@@ -72,6 +73,7 @@ const GameTable: React.FC<GameTableProps> = ({
   onRemoveCardFromGroup,
   onAddCardToGroup,
   onMoveCardFromGroupToHand,
+  onUpdateGroupPosition // Novo parâmetro
 }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dropPosition, setDropPosition] = useState<{ x: number, y: number } | null>(null);
@@ -622,6 +624,13 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const playerPositions = getPlayerPositions(players);
 
+  // Manipulador para atualizar a posição do grupo
+  const handleUpdateGroupPosition = (groupId: string, x: number, y: number) => {
+    if (onUpdateGroupPosition) {
+      onUpdateGroupPosition(groupId, x, y);
+    }
+  };
+
   return (
     <div className="relative w-full h-full">
       <motion.div
@@ -677,6 +686,7 @@ const GameTable: React.FC<GameTableProps> = ({
                   }
                 } :
                 undefined}
+              onPositionChange={handleUpdateGroupPosition}
             />
           ))}
         </AnimatePresence>

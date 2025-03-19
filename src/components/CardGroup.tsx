@@ -35,6 +35,7 @@ interface CardGroupProps {
     onRemoveCard?: (groupId: string, cardIndex: number) => void;
     onMoveToHand?: (cardIndex: number) => void;
     onFlipCard?: (groupId: string, cardIndex: number) => void;
+    onPositionChange?: (groupId: string, x: number, y: number) => void; // Novo callback para atualizar posição
 }
 
 const CardGroup: React.FC<CardGroupProps> = ({
@@ -47,6 +48,7 @@ const CardGroup: React.FC<CardGroupProps> = ({
     onRemoveCard,
     onMoveToHand,
     onFlipCard,
+    onPositionChange,
 }) => {
     const [rotation] = useState(() => Math.random() * 20 - 10);
     const [lastClickTime, setLastClickTime] = useState<number>(0);
@@ -60,12 +62,13 @@ const CardGroup: React.FC<CardGroupProps> = ({
         setCurrentPosition({ x, y });
     }, [x, y]);
 
-    // Registrar o grupo para detecção global de dragover
+    // Notificar componente pai sobre área do grupo para detecção de colisão
     useEffect(() => {
-        const registerGroupPosition = () => {
-            if (groupRef.current) {
+        const reportGroupArea = () => {
+            if (groupRef.current && onPositionChange) {
                 const rect = groupRef.current.getBoundingClientRect();
-                const event = new CustomEvent('register-card-group', {
+                // Não atualiza Firebase aqui, apenas registra a área para detecção
+                window.dispatchEvent(new CustomEvent('register-card-group', {
                     detail: {
                         groupId,
                         rect: {
@@ -77,25 +80,20 @@ const CardGroup: React.FC<CardGroupProps> = ({
                             height: rect.height
                         }
                     }
-                });
-                window.dispatchEvent(event);
+                }));
             }
         };
 
-        registerGroupPosition();
+        reportGroupArea();
+        const interval = setInterval(reportGroupArea, 500);
 
-        // Registrar novamente quando a posição mudar
-        const interval = setInterval(registerGroupPosition, 500);
-
-        // Limpar
         return () => {
             clearInterval(interval);
-            // Desregistrar ao desmontar
             window.dispatchEvent(new CustomEvent('unregister-card-group', {
                 detail: { groupId }
             }));
         };
-    }, [groupId, currentPosition.x, currentPosition.y]);
+    }, [groupId, currentPosition.x, currentPosition.y, onPositionChange]);
 
     // Evento de dragover para feedback visual
     useEffect(() => {
@@ -217,15 +215,10 @@ const CardGroup: React.FC<CardGroupProps> = ({
                 const newY = y + info.offset.y;
                 setCurrentPosition({ x: newX, y: newY });
 
-                // Disparar evento para atualizar a posição no Firebase
-                const event = new CustomEvent('cardgroup-moved', {
-                    detail: {
-                        groupId: groupId,
-                        x: newX,
-                        y: newY
-                    }
-                });
-                window.dispatchEvent(event);
+                // Usar o callback do React para notificar o componente pai sobre a mudança de posição
+                if (onPositionChange) {
+                    onPositionChange(groupId, newX, newY);
+                }
             }}
         >
             {/* Área de detecção pontilhada */}
