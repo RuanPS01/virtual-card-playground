@@ -301,6 +301,61 @@ const Index = () => {
   };
 
 
+  // Handle moving a card between groups
+  const handleMoveCardBetweenGroups = async (sourceGroupId: string, cardIndex: number, targetGroupId: string) => {
+    console.log(`Movendo carta ${cardIndex} do grupo ${sourceGroupId} para o grupo ${targetGroupId}`);
+
+    const success = await updateGameState(state => {
+      // Verificar se os grupos existem
+      if (!state.cardGroups) {
+        console.log("Nenhum grupo de cartas encontrado");
+        return state;
+      }
+
+      // Encontrar o grupo de origem
+      const sourceGroupIndex = state.cardGroups.findIndex(g => g.id === sourceGroupId);
+      if (sourceGroupIndex < 0) {
+        console.log("Grupo de origem não encontrado:", sourceGroupId);
+        return state;
+      }
+
+      // Encontrar o grupo de destino
+      const targetGroupIndex = state.cardGroups.findIndex(g => g.id === targetGroupId);
+      if (targetGroupIndex < 0) {
+        console.log("Grupo de destino não encontrado:", targetGroupId);
+        return state;
+      }
+
+      // Verificar se o índice da carta é válido
+      const sourceGroup = state.cardGroups[sourceGroupIndex];
+      if (cardIndex < 0 || cardIndex >= sourceGroup.cards.length) {
+        console.log("Índice de carta inválido:", cardIndex);
+        return state;
+      }
+
+      // Remover a carta do grupo de origem
+      const movedCard = { ...sourceGroup.cards[cardIndex] };
+      sourceGroup.cards.splice(cardIndex, 1);
+
+      // Adicionar a carta ao grupo de destino
+      state.cardGroups[targetGroupIndex].cards.push(movedCard);
+
+      // Se o grupo de origem ficar vazio, remover o grupo
+      if (sourceGroup.cards.length === 0) {
+        state.cardGroups.splice(sourceGroupIndex, 1);
+      }
+
+      return state;
+    });
+
+    if (success) {
+      toast.success('Carta movida para outro grupo');
+    } else {
+      toast.error('Erro ao mover carta entre grupos');
+    }
+  };
+
+
   // Handler for creating a new room
   const handleCreateRoom = async (playerName: string) => {
     setIsLoading(true);
@@ -943,6 +998,7 @@ const Index = () => {
           onAddCardToGroup={handleAddCardToGroup}
           onMoveCardFromGroupToHand={handleMoveCardFromGroupToHand}
           onUpdateGroupPosition={handleUpdateGroupPosition} // Nova prop
+          onMoveCardBetweenGroups={handleMoveCardBetweenGroups}
         />
       </div>
 

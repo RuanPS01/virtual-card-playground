@@ -168,14 +168,14 @@ const CardGroup: React.FC<CardGroupProps> = ({
         if (mode === 'fan') {
             // Para leque, considerar a extensão do leque
             return {
-                width: Math.max(120, (cards.length - 1) * 25 + 80) + 40, // Largura base da carta + extensão do leque + padding
-                height: 130 + ((cards.length - 1) * 5) + 40 // Altura da carta + dimensão vertical do leque + padding
+                width: Math.max(120, (cards.length - 1) * 25 + 80) + 60, // Aumentado o padding para área maior
+                height: 130 + ((cards.length - 1) * 5) + 60 // Aumentado o padding para área maior
             };
         } else {
             // Para pilha
             return {
-                width: 120 + 40, // Largura da carta + padding
-                height: 130 + (cards.length * 2) + 40 // Altura da carta + sobreposição da pilha + padding
+                width: 120 + 60, // Aumentado o padding para área maior
+                height: 130 + (cards.length * 2) + 60 // Aumentado o padding para área maior
             };
         }
     };

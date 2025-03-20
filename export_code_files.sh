@@ -15,7 +15,7 @@ CSS_OUTPUT="css_files_of_project.txt"
 # Concatenar conteúdos dos arquivos em UTF-8, ignorando node_modules/
 find . -type f -name "*.tsx" -not -path "*/node_modules/*" -exec cat {} + >> "$TSX_OUTPUT"
 find . -type f -name "*.ts" -not -name "*.d.ts" -not -path "*/node_modules/*" -exec cat {} + >> "$TS_OUTPUT"
-find . -maxdepth 1 -type f -name "*.json" -not -name "*lock.json" -exec cat {} + >> "$JSON_OUTPUT"
+find . -maxdepth 1 -type f -name "*.json" -not -name "*lock.json" -not -path "*/node_modules/*" -exec cat {} + >> "$JSON_OUTPUT"
 find . -type f -name "*.css" -not -path "*/node_modules/*" -exec cat {} + >> "$CSS_OUTPUT"
 
 echo "Exportação concluída!"

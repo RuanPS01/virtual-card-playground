@@ -54,6 +54,7 @@ interface GameTableProps {
   onAddCardToGroup?: (groupId: string, cardId: string) => void;
   onMoveCardFromGroupToHand?: (groupId: string, cardIndex: number, playerId: string) => void;
   onUpdateGroupPosition?: (groupId: string, x: number, y: number) => void; // Novo callback
+  onMoveCardBetweenGroups?: (sourceGroupId: string, cardIndex: number, targetGroupId: string) => void;
 }
 
 const GameTable: React.FC<GameTableProps> = ({
@@ -73,7 +74,8 @@ const GameTable: React.FC<GameTableProps> = ({
   onRemoveCardFromGroup,
   onAddCardToGroup,
   onMoveCardFromGroupToHand,
-  onUpdateGroupPosition // Novo parâmetro
+  onUpdateGroupPosition, // Novo parâmetro
+  onMoveCardBetweenGroups
 }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dropPosition, setDropPosition] = useState<{ x: number, y: number } | null>(null);
@@ -321,34 +323,45 @@ const GameTable: React.FC<GameTableProps> = ({
         const groupInfo = isOverCardGroup(e.clientX, e.clientY);
 
         if (groupInfo && groupInfo.isOver) {
-          // Estamos dropando sobre um grupo
-          if (onAddCardToGroup) {
-            const draggedCardId = draggedCard?.id || data.id;
-            onAddCardToGroup(groupInfo.groupId, draggedCardId);
+          // Se a carta sendo arrastada é de outro grupo
+          if (data.isGrouped && data.groupId && data.groupId !== groupInfo.groupId) {
+            if (onMoveCardBetweenGroups) {
+              // Transferir a carta entre grupos
+              onMoveCardBetweenGroups(data.groupId, data.groupIndex, groupInfo.groupId);
 
-            // Limpar estados
-            setIsDraggingOver(false);
-            setDraggedCard(null);
-            setDropPosition(null);
+              // Limpar estados
+              setIsDraggingOver(false);
+              setDraggedCard(null);
+              setDropPosition(null);
 
-            // Limpar highlighting
-            window.dispatchEvent(new CustomEvent('dragleave-card-group', {
-              detail: { groupId: groupInfo.groupId }
-            }));
-            setCurrentHoveredGroup(null);
+              // Limpar highlighting
+              window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+                detail: { groupId: groupInfo.groupId }
+              }));
+              setCurrentHoveredGroup(null);
 
-            return;
+              return;
+            }
           }
-        }
+          // Caso contrário, continuar com a lógica existente para adicionar ao grupo
+          else if (!data.isGrouped || data.groupId !== groupInfo.groupId) {
+            if (onAddCardToGroup) {
+              const draggedCardId = draggedCard?.id || data.id;
+              onAddCardToGroup(groupInfo.groupId, draggedCardId);
 
-        if (data.isGrouped && dropPosition) {
-          // Esta é uma carta sendo arrastada de um grupo
-          if (onRemoveCardFromGroup) {
-            // Remover do grupo
-            onRemoveCardFromGroup(data.groupId, data.groupIndex, dropPosition.x, dropPosition.y);
-            setIsDraggingOver(false);
-            setCurrentHoveredGroup(null);
-            return;
+              // Limpar estados
+              setIsDraggingOver(false);
+              setDraggedCard(null);
+              setDropPosition(null);
+
+              // Limpar highlighting
+              window.dispatchEvent(new CustomEvent('dragleave-card-group', {
+                detail: { groupId: groupInfo.groupId }
+              }));
+              setCurrentHoveredGroup(null);
+
+              return;
+            }
           }
         }
 
