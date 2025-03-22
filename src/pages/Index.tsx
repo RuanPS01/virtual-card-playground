@@ -252,12 +252,12 @@ const Index = () => {
     console.log("Removendo carta", cardIndex, "do grupo", groupId, "para posição", x, y);
 
     const success = await updateGameState(state => {
-      // Verificações existentes...
-
       // Criar uma cópia profunda do estado
       const newState = JSON.parse(JSON.stringify(state));
 
       // Encontrar o grupo
+      if (!newState.cardGroups) return state;
+
       const groupIndex = newState.cardGroups.findIndex(g => g.id === groupId);
       if (groupIndex < 0) return state;
 
@@ -289,7 +289,6 @@ const Index = () => {
       if (!newState.tableCards) {
         newState.tableCards = [];
       }
-
       newState.tableCards.push(newTableCard);
 
       return newState;
@@ -297,9 +296,10 @@ const Index = () => {
 
     if (success) {
       toast.success('Carta removida do grupo');
+    } else {
+      toast.error('Erro ao remover carta do grupo');
     }
   };
-
 
   // Handle moving a card between groups
   const handleMoveCardBetweenGroups = async (sourceGroupId: string, cardIndex: number, targetGroupId: string) => {

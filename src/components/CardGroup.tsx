@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { GripVertical } from 'lucide-react';
 import Card, { Suit, Rank } from './Card';
 import { cn } from '@/lib/utils';
+import { createCardDragImage } from '@/utils/dragImageUtils';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -127,10 +128,26 @@ const CardGroup: React.FC<CardGroupProps> = ({
             faceUp: card.faceUp,
             isGrouped: true,
             groupId: groupId,
-            groupIndex: index
+            groupIndex: index,
+            groupX: x,
+            groupY: y
         }));
 
+        // Criar imagem personalizada para o arrasto
+        createCardDragImage(card.suit, card.rank, card.faceUp, e.dataTransfer);
+
         onDragStart(card.id, card.suit, card.rank);
+    };
+
+    // Função auxiliar para obter o símbolo Unicode do naipe
+    const getSuitSymbol = (suit: Suit): string => {
+        switch (suit) {
+            case 'hearts': return '♥';
+            case 'diamonds': return '♦';
+            case 'clubs': return '♣';
+            case 'spades': return '♠';
+            default: return '';
+        }
     };
 
     const handleCardClick = (index: number) => {

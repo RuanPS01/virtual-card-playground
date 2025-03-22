@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import Card, { Suit, Rank } from './Card';
+import { createCardDragImage } from '@/utils/dragImageUtils';
 
 interface TableCardProps {
   id: string;
@@ -33,7 +34,12 @@ const TableCard: React.FC<TableCardProps> = ({
       faceUp
     }));
 
-    onDragStart(id, suit, rank);
+    // Adicionar imagem personalizada durante o arrasto
+    createCardDragImage(suit, rank, faceUp, e.dataTransfer);
+
+    if (onDragStart) {
+      onDragStart(id, suit, rank);
+    }
   };
 
   return (

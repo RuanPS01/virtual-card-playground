@@ -281,15 +281,12 @@ const GameTable: React.FC<GameTableProps> = ({
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    setIsDraggingOver(false);
 
-    // Check if we're dropping on a player hand element
+    // Se o evento aconteceu em um player hand, retornar e deixar o handler específico tratar
     const target = e.target as HTMLElement;
-    const playerHandElement = target.closest('[data-player-area="true"]');
-
-    if (playerHandElement) {
-      // If we're dropping on a player hand, we'll let handlePlayerAreaDrop handle it
-      setIsDraggingOver(false);
-
+    const isPlayerHand = target.closest('[data-player-area="true"]');
+    if (isPlayerHand) {
       // Limpar qualquer highlighting de grupo
       if (currentHoveredGroup) {
         window.dispatchEvent(new CustomEvent('dragleave-card-group', {
@@ -323,7 +320,7 @@ const GameTable: React.FC<GameTableProps> = ({
         const groupInfo = isOverCardGroup(e.clientX, e.clientY);
 
         if (groupInfo && groupInfo.isOver) {
-          // Se a carta sendo arrastada é de outro grupo
+          // Lógica existente para adicionar/mover cartas para grupos
           if (data.isGrouped && data.groupId && data.groupId !== groupInfo.groupId) {
             if (onMoveCardBetweenGroups) {
               // Transferir a carta entre grupos
@@ -363,72 +360,86 @@ const GameTable: React.FC<GameTableProps> = ({
               return;
             }
           }
-        }
+        } else {
+          // Não estamos sobre um grupo - estamos dropando na mesa
 
-        // Verificar se estamos dropando sobre outra carta
-        const overCardInfo = isOverCard(dropPosition.x, dropPosition.y);
+          // Se a carta veio de um grupo, remover do grupo e colocar na mesa
+          if (data.isGrouped && data.groupId) {
+            if (onRemoveCardFromGroup) {
+              onRemoveCardFromGroup(data.groupId, data.groupIndex, dropPosition.x, dropPosition.y);
 
-        if (overCardInfo && overCardInfo.isOver) {
-          // Estamos dropando sobre outra carta, mostrar o modal de escolha
-          const draggedCardId = draggedCard?.id || data.id;
+              // Limpar estados
+              setDraggedCard(null);
+              setDropPosition(null);
+              return;
+            }
+          }
 
-          setStackTarget({
-            draggedCardId: draggedCardId,
-            targetCardId: overCardInfo.cardId,
-            x: dropPosition.x,
-            y: dropPosition.y,
-            draggedSuit: data.suit,
-            draggedRank: data.rank,
-            targetSuit: overCardInfo.suit,
-            targetRank: overCardInfo.rank
-          });
+          // Código existente para lidar com outros tipos de cartas
+          const overCardInfo = isOverCard(dropPosition.x, dropPosition.y);
 
-          // Armazenar a posição do mouse para o modal
+          if (overCardInfo && overCardInfo.isOver) {
+            // Estamos dropando sobre outra carta, mostrar o modal de escolha
+            const draggedCardId = draggedCard?.id || data.id;
+
+            setStackTarget({
+              draggedCardId: draggedCardId,
+              targetCardId: overCardInfo.cardId,
+              x: dropPosition.x,
+              y: dropPosition.y,
+              draggedSuit: data.suit,
+              draggedRank: data.rank,
+              targetSuit: overCardInfo.suit,
+              targetRank: overCardInfo.rank
+            });
+
+            // Armazenar a posição do mouse para o modal
+            setMousePosition({ x: e.clientX, y: e.clientY });
+
+            // Mostrar o modal de escolha do modo de agrupamento
+            setShowStackOptions(true);
+            setIsDraggingOver(false);
+            setCurrentHoveredGroup(null);
+            return;
+          }
+
+          // Identify the source type of the card
+          const sourceType = draggedCard?.sourceType || 'deck';
+
+          // Set up the dragged card information
+          const newDraggedCard = {
+            id: data.id,
+            suit: data.suit,
+            rank: data.rank,
+            sourceType: sourceType,
+            sourceId: draggedCard?.sourceId,
+            sourceIndex: draggedCard?.sourceIndex
+          };
+
+          setDraggedCard(newDraggedCard);
+
+          // Store the current mouse position for the dialog
           setMousePosition({ x: e.clientX, y: e.clientY });
 
-          // Mostrar o modal de escolha do modo de agrupamento
-          setShowStackOptions(true);
-          setIsDraggingOver(false);
-          setCurrentHoveredGroup(null);
-          return;
-        }
-
-        // Identify the source type of the card
-        const sourceType = draggedCard?.sourceType || 'deck';
-
-        // Set up the dragged card information
-        const newDraggedCard = {
-          id: data.id,
-          suit: data.suit,
-          rank: data.rank,
-          sourceType: sourceType,
-          sourceId: draggedCard?.sourceId,
-          sourceIndex: draggedCard?.sourceIndex
-        };
-
-        setDraggedCard(newDraggedCard);
-
-        // Store the current mouse position for the dialog
-        setMousePosition({ x: e.clientX, y: e.clientY });
-
-        // If the card is already on the table, we don't show the modal
-        // We move the card directly to the new position
-        if (sourceType === 'table') {
-          const card = tableCards.find(c => c.id === newDraggedCard.sourceId);
-          if (card) {
-            onMoveCard(
-              card.id,
-              'table',
-              'table',
-              undefined,
-              card.faceUp,
-              dropPosition.x,
-              dropPosition.y
-            );
+          // If the card is already on the table, we don't show the modal
+          // We move the card directly to the new position
+          if (sourceType === 'table') {
+            const card = tableCards.find(c => c.id === newDraggedCard.sourceId);
+            if (card) {
+              onMoveCard(
+                card.id,
+                'table',
+                'table',
+                undefined,
+                card.faceUp,
+                dropPosition.x,
+                dropPosition.y
+              );
+            }
+          } else {
+            // For cards from hand or deck, we show the modal
+            setShowCardOptions(true);
           }
-        } else {
-          // For cards from hand or deck, we show the modal
-          setShowCardOptions(true);
         }
       }
     } catch (error) {

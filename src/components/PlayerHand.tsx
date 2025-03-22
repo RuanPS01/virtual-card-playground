@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Card, { Suit, Rank } from './Card';
 import { cn } from '@/lib/utils';
+import { createCardDragImage } from '@/utils/dragImageUtils';
 
 interface PlayerHandProps {
   cards: Array<{ suit: Suit; rank: Rank; faceUp: boolean; id: string }>;
@@ -66,20 +67,18 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
       faceUp: cards[index].faceUp
     }));
 
+    // Criar imagem personalizada para o arrasto
+    createCardDragImage(cards[index].suit, cards[index].rank, cards[index].faceUp, e.dataTransfer);
+
     // Não usar imagem vazia quando arrastar para fora do componente
     // para permitir que o GameTable mostre a visualização da carta
     if (e.target instanceof HTMLElement && !e.currentTarget.hasAttribute('data-external-drag')) {
-      // Esconder a imagem de arrastar padrão apenas para reordenação
-      const emptyImg = new Image();
-      emptyImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-      e.dataTransfer.setDragImage(emptyImg, 0, 0);
+      if (onCardDragStart) {
+        onCardDragStart(e, index);
+      }
     }
 
     setDraggingIndex(index);
-
-    if (onCardDragStart) {
-      onCardDragStart(e, index);
-    }
   };
 
   // Lidar com arrasto sobre um elemento

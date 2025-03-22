@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Card, { Suit, Rank } from './Card';
 import { cn } from '@/lib/utils';
+import { createCardDragImage } from '@/utils/dragImageUtils';
 
 interface DeckProps {
   cards: Array<{ suit: Suit; rank: Rank; faceUp: boolean }>;
@@ -12,32 +12,52 @@ interface DeckProps {
   className?: string;
 }
 
-const Deck: React.FC<DeckProps> = ({ 
-  cards, 
+const Deck: React.FC<DeckProps> = ({
+  cards,
   onCardDragStart,
   onDeckClick,
-  onDeckShuffle, 
-  className 
+  onDeckShuffle,
+  className
 }) => {
   const [isShuffling, setIsShuffling] = useState(false);
 
   const handleShuffle = () => {
     if (isShuffling) return;
-    
+
     setIsShuffling(true);
-    
+
     if (onDeckShuffle) {
       onDeckShuffle();
     }
-    
+
     setTimeout(() => {
       setIsShuffling(false);
     }, 800);
   };
 
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+    if (cards.length === 0) return;
+
+    const topCard = cards[cards.length - 1];
+
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'card',
+      id: 'top-card',
+      suit: topCard.suit,
+      rank: topCard.rank
+    }));
+
+    // Criar imagem personalizada para o arrasto
+    createCardDragImage(topCard.suit, topCard.rank, false, e.dataTransfer);
+
+    if (onCardDragStart) {
+      onCardDragStart(e);
+    }
+  };
+
   if (cards.length === 0) {
     return (
-      <motion.div 
+      <motion.div
         className={cn("w-20 h-28 rounded-md border-2 border-dashed border-gray-300 flex items-center justify-center", className)}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -52,40 +72,40 @@ const Deck: React.FC<DeckProps> = ({
       {cards.slice(0, Math.min(5, cards.length)).map((card, index, array) => {
         const isTopCard = index === array.length - 1;
         const offset = index * 0.5;
-        
+
         return (
-          <motion.div 
+          <motion.div
             key={`${card.suit}-${card.rank}-${index}`}
             className="absolute"
-            style={{ 
+            style={{
               zIndex: index,
-              top: `${offset}px`, 
+              top: `${offset}px`,
               left: `${offset}px`,
             }}
-            animate={isShuffling ? { 
-              x: [0, 5, -5, 5, 0], 
+            animate={isShuffling ? {
+              x: [0, 5, -5, 5, 0],
               y: [0, -2, 2, -2, 0],
               rotate: [0, 2, -2, 2, 0],
             } : {}}
-            transition={isShuffling ? { 
+            transition={isShuffling ? {
               duration: 0.8,
               ease: "easeInOut",
             } : {}}
           >
-            <Card 
-              suit={card.suit} 
-              rank={card.rank} 
+            <Card
+              suit={card.suit}
+              rank={card.rank}
               faceUp={isTopCard ? card.faceUp : false}
               draggable={isTopCard}
-              onDragStart={(e) => onCardDragStart && onCardDragStart(e, cards.length - 1)}
+              onDragStart={(e) => handleDragStart(e)}
               onClick={isTopCard ? onDeckClick : undefined}
             />
           </motion.div>
         );
       })}
-      
+
       <div className="absolute -right-10 bottom-0 flex flex-col items-center space-y-2">
-        <motion.button 
+        <motion.button
           className="p-2 rounded-full bg-white shadow-md text-gray-700 hover:bg-gray-100"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
@@ -101,7 +121,7 @@ const Deck: React.FC<DeckProps> = ({
             <path d="m18 14 4 4-4 4"></path>
           </svg>
         </motion.button>
-        
+
         <div className="text-xs font-semibold bg-white px-2 py-1 rounded-md shadow-sm">
           {cards.length}
         </div>
