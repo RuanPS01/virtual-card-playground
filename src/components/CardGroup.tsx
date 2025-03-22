@@ -163,38 +163,30 @@ const CardGroup: React.FC<CardGroupProps> = ({
     };
 
     const getHandlePosition = () => {
-        if (mode === 'fan') {
-            const lastCardOffset = (cards.length - 1) * 25;
-            const lastCardYOffset = (cards.length - 1) * 5;
-            return {
-                x: lastCardOffset + 10,
-                y: lastCardYOffset + 140
-            };
-        } else {
-            return {
-                x: 10,
-                y: 140
-            };
-        }
+        // We're displaying cards horizontally, so handle should be positioned at the end
+        const totalWidth = cards.length * 30 + 80; // 30px spacing between cards + card width
+
+        return {
+            x: totalWidth + 10, // Position handle to the right of the group
+            y: 65 // Position in the middle of the card height
+        };
     };
 
-    const handlePosition = getHandlePosition();
-
-    // Calcular o tamanho da área de interação baseado no modo e no número de cartas
+    // Calculate the actual area occupied by the cards
     const getAreaSize = () => {
-        if (mode === 'fan') {
-            // Para leque, considerar a extensão do leque
-            return {
-                width: Math.max(120, (cards.length - 1) * 25 + 80) + 60, // Aumentado o padding para área maior
-                height: 130 + ((cards.length - 1) * 5) + 60 // Aumentado o padding para área maior
-            };
-        } else {
-            // Para pilha
-            return {
-                width: 120 + 60, // Aumentado o padding para área maior
-                height: 130 + (cards.length * 2) + 60 // Aumentado o padding para área maior
-            };
-        }
+        const cardWidth = 80; // Width of a card
+        const cardHeight = 112; // Height of a card
+        const cardSpacing = 30; // Horizontal spacing between cards
+
+        // Calculate total width based on number of cards
+        const totalWidth = cards.length > 1
+            ? (cards.length - 1) * cardSpacing + cardWidth
+            : cardWidth;
+
+        return {
+            width: totalWidth + 20, // Add padding
+            height: cardHeight + 20 // Add padding
+        };
     };
 
     const areaSize = getAreaSize();
@@ -216,12 +208,12 @@ const CardGroup: React.FC<CardGroupProps> = ({
             animate={{
                 scale: 1,
                 opacity: 1,
-                rotate: rotation
+                rotate: 0 // Remove rotation to keep group straight
             }}
             exit={{
                 scale: 0.8,
                 opacity: 0,
-                rotate: rotation
+                rotate: 0
             }}
             layoutId={groupId}
             drag
@@ -238,17 +230,17 @@ const CardGroup: React.FC<CardGroupProps> = ({
                 }
             }}
         >
-            {/* Área de detecção pontilhada */}
+            {/* Visible rectangle showing the group area */}
             <div
                 className={cn(
-                    "absolute border-2 border-dashed rounded-lg transition-colors",
-                    isDraggedOver ? "border-blue-500 bg-blue-100 bg-opacity-30" : "border-transparent"
+                    "absolute border-2 rounded-lg transition-colors",
+                    isDraggedOver ? "border-blue-500 bg-blue-100 bg-opacity-30" : "border-gray-300 border-dashed"
                 )}
                 style={{
                     width: areaSize.width,
                     height: areaSize.height,
-                    left: -(areaSize.width - 80) / 2, // Centralizar na carta com ajuste
-                    top: -(areaSize.height - 130) / 2, // Centralizar na carta com ajuste
+                    left: -10, // Small offset to center
+                    top: -10, // Small offset to center
                     zIndex: 5
                 }}
                 data-card-group-dropzone={groupId}
@@ -256,9 +248,12 @@ const CardGroup: React.FC<CardGroupProps> = ({
 
             <div className={cn("relative")}>
                 {cards.map((card, index) => {
-                    const offset = mode === 'fan'
-                        ? { x: index * 25, y: index * 5, rotate: index * 5 }
-                        : { x: index * 2, y: index * 2, rotate: 0 };
+                    // Horizontal layout with uniform spacing and no rotation
+                    const offset = {
+                        x: index * 30, // Consistent horizontal spacing
+                        y: 0,         // No vertical offset 
+                        rotate: 0      // No rotation
+                    };
 
                     return (
                         <ContextMenu key={card.id}>
@@ -301,12 +296,12 @@ const CardGroup: React.FC<CardGroupProps> = ({
                     );
                 })}
 
-                {/* Botão de arrasto para reposicionar o grupo */}
+                {/* Reposition drag handle to the right end of the group */}
                 <motion.div
                     className="absolute flex items-center justify-center w-8 h-8 rounded-full bg-white shadow-md cursor-move z-50"
                     style={{
-                        left: handlePosition.x,
-                        top: handlePosition.y
+                        left: getHandlePosition().x,
+                        top: getHandlePosition().y
                     }}
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}

@@ -173,12 +173,13 @@ const GameTable: React.FC<GameTableProps> = ({
   const isOverCardGroup = (clientX: number, clientY: number): { isOver: boolean; groupId: string } | null => {
     for (const [groupId, data] of Object.entries(registeredGroups)) {
       const { rect } = data;
-      // Verificar se a posição está dentro do retângulo do grupo
+      // Verificar se a posição está dentro do retângulo do grupo sem margens extras grandes
+      // Usando a área exata do grupo com uma pequena margem de tolerância de 5px
       if (
-        clientX >= (rect.left - 200) &&
-        clientX <= (rect.right + 200) &&
-        clientY >= (rect.top - 200) &&
-        clientY <= (rect.bottom + 200)
+        clientX >= (rect.left - 5) &&
+        clientX <= (rect.right + 5) &&
+        clientY >= (rect.top - 5) &&
+        clientY <= (rect.bottom + 5)
       ) {
         return {
           isOver: true,
