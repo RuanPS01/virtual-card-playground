@@ -176,10 +176,10 @@ const GameTable: React.FC<GameTableProps> = ({
       // Verificar se a posição está dentro do retângulo do grupo sem margens extras grandes
       // Usando a área exata do grupo com uma pequena margem de tolerância de 5px
       if (
-        clientX >= (rect.left - 5) &&
-        clientX <= (rect.right + 5) &&
-        clientY >= (rect.top - 5) &&
-        clientY <= (rect.bottom + 5)
+        clientX >= (rect.left - 80) &&
+        clientX <= (rect.right + 80) &&
+        clientY >= (rect.top - 150) &&
+        clientY <= (rect.bottom + 150)
       ) {
         return {
           isOver: true,
