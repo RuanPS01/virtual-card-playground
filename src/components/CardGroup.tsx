@@ -57,6 +57,7 @@ const CardGroup: React.FC<CardGroupProps> = ({
     const [currentPosition, setCurrentPosition] = useState({ x, y });
     const [isDraggedOver, setIsDraggedOver] = useState(false);
     const groupRef = useRef<HTMLDivElement>(null);
+    const dropzoneRef = useRef<HTMLDivElement>(null); // New ref for the dropzone area
 
     // Atualizar a posição atual quando as props mudam
     useEffect(() => {
@@ -66,19 +67,21 @@ const CardGroup: React.FC<CardGroupProps> = ({
     // Notificar componente pai sobre área do grupo para detecção de colisão
     useEffect(() => {
         const reportGroupArea = () => {
-            if (groupRef.current && onPositionChange) {
-                const rect = groupRef.current.getBoundingClientRect();
-                // Não atualiza Firebase aqui, apenas registra a área para detecção
+            if (groupRef.current && dropzoneRef.current && onPositionChange) {
+                // Use the dropzone element's dimensions for more accurate collision detection
+                const groupRect = groupRef.current.getBoundingClientRect();
+                const dropzoneRect = dropzoneRef.current.getBoundingClientRect();
+
                 window.dispatchEvent(new CustomEvent('register-card-group', {
                     detail: {
                         groupId,
                         rect: {
-                            left: rect.left,
-                            right: rect.right,
-                            top: rect.top,
-                            bottom: rect.bottom,
-                            width: rect.width,
-                            height: rect.height
+                            left: dropzoneRect.left,
+                            right: dropzoneRect.right,
+                            top: dropzoneRect.top,
+                            bottom: dropzoneRect.bottom,
+                            width: dropzoneRect.width,
+                            height: dropzoneRect.height
                         }
                     }
                 }));
@@ -163,30 +166,45 @@ const CardGroup: React.FC<CardGroupProps> = ({
     };
 
     const getHandlePosition = () => {
-        // We're displaying cards horizontally, so handle should be positioned at the end
-        const totalWidth = cards.length * 30 + 80; // 30px spacing between cards + card width
-
-        return {
-            x: totalWidth + 10, // Position handle to the right of the group
-            y: 65 // Position in the middle of the card height
-        };
+        // Calculate handle position based on mode
+        if (mode === 'stack') {
+            // For stack, place handle to the right of the top card
+            return {
+                x: 90, // Just to the right of a card width (80px)
+                y: 65  // Middle of card height
+            };
+        } else {
+            // For fan, place handle at the end of the spread
+            const totalWidth = cards.length * 30 + 80; // 30px spacing between cards + card width
+            return {
+                x: totalWidth + 10, // Position handle to the right of the group
+                y: 65 // Position in the middle of the card height
+            };
+        }
     };
 
     // Calculate the actual area occupied by the cards
     const getAreaSize = () => {
         const cardWidth = 80; // Width of a card
         const cardHeight = 112; // Height of a card
-        const cardSpacing = 30; // Horizontal spacing between cards
 
-        // Calculate total width based on number of cards
-        const totalWidth = cards.length > 1
-            ? (cards.length - 1) * cardSpacing + cardWidth
-            : cardWidth;
-
-        return {
-            width: totalWidth + 20, // Add padding
-            height: cardHeight + 20 // Add padding
-        };
+        if (mode === 'stack') {
+            // For stack mode, area is mostly the size of a single card plus small padding
+            return {
+                width: cardWidth + 10, // Add minimal padding
+                height: cardHeight + 10 // Add minimal padding
+            };
+        } else {
+            // For fan mode (original calculation)
+            const cardSpacing = 30; // Horizontal spacing between cards
+            const totalWidth = cards.length > 1
+                ? (cards.length - 1) * cardSpacing + cardWidth
+                : cardWidth;
+            return {
+                width: totalWidth + 20, // Add padding
+                height: cardHeight + 20 // Add padding
+            };
+        }
     };
 
     const areaSize = getAreaSize();
@@ -220,18 +238,19 @@ const CardGroup: React.FC<CardGroupProps> = ({
             dragMomentum={false}
             onDragEnd={(e, info) => {
                 // Atualizar posição local
-                const newX = x + info.offset.x;
-                const newY = y + info.offset.y;
+                const newX = x;
+                const newY = y;
                 setCurrentPosition({ x: newX, y: newY });
 
                 // Usar o callback do React para notificar o componente pai sobre a mudança de posição
                 if (onPositionChange) {
-                    onPositionChange(groupId, newX, newY);
+                    onPositionChange(groupId, x + info.offset.x, info.offset.y);
                 }
             }}
         >
             {/* Visible rectangle showing the group area */}
             <div
+                ref={dropzoneRef} // Add the ref to the dropzone element
                 className={cn(
                     "absolute border-2 rounded-lg transition-colors",
                     isDraggedOver ? "border-blue-500 bg-blue-100 bg-opacity-30" : "border-gray-300 border-dashed"
@@ -248,12 +267,24 @@ const CardGroup: React.FC<CardGroupProps> = ({
 
             <div className={cn("relative")}>
                 {cards.map((card, index) => {
-                    // Horizontal layout with uniform spacing and no rotation
-                    const offset = {
-                        x: index * 30, // Consistent horizontal spacing
-                        y: 0,         // No vertical offset 
-                        rotate: 0      // No rotation
-                    };
+                    // Calculate offsets based on mode
+                    let offset;
+
+                    if (mode === 'stack') {
+                        // Stack mode - cards minimally offset to show stacking
+                        offset = {
+                            x: 2 * index, // Minimal horizontal offset to show stacking
+                            y: 2 * index, // Minimal vertical offset to show stacking
+                            rotate: 0     // No rotation
+                        };
+                    } else {
+                        // Fan mode - cards spread horizontally
+                        offset = {
+                            x: index * 30, // Wider horizontal spacing
+                            y: 0,          // No vertical offset 
+                            rotate: 0       // No rotation
+                        };
+                    }
 
                     return (
                         <ContextMenu key={card.id}>

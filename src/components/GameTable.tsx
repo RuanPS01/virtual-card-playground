@@ -173,13 +173,14 @@ const GameTable: React.FC<GameTableProps> = ({
   const isOverCardGroup = (clientX: number, clientY: number): { isOver: boolean; groupId: string } | null => {
     for (const [groupId, data] of Object.entries(registeredGroups)) {
       const { rect } = data;
-      // Verificar se a posição está dentro do retângulo do grupo sem margens extras grandes
-      // Usando a área exata do grupo com uma pequena margem de tolerância de 5px
+
+      // Use the exact dimensions of the dropzone area with a small margin for better UX
+      // Using a 10px margin instead of the arbitrary large values
       if (
-        clientX >= (rect.left - 80) &&
-        clientX <= (rect.right + 80) &&
-        clientY >= (rect.top - 150) &&
-        clientY <= (rect.bottom + 150)
+        clientX >= (rect.left - 10) &&
+        clientX <= (rect.right + 10) &&
+        clientY >= (rect.top - 10) &&
+        clientY <= (rect.bottom + 10)
       ) {
         return {
           isOver: true,
