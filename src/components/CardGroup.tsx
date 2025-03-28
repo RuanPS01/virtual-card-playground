@@ -54,22 +54,14 @@ const CardGroup: React.FC<CardGroupProps> = ({
     const [rotation] = useState(() => Math.random() * 20 - 10);
     const [lastClickTime, setLastClickTime] = useState<number>(0);
     const [lastClickedCard, setLastClickedCard] = useState<number>(-1);
-    const [currentPosition, setCurrentPosition] = useState({ x, y });
     const [isDraggedOver, setIsDraggedOver] = useState(false);
     const groupRef = useRef<HTMLDivElement>(null);
     const dropzoneRef = useRef<HTMLDivElement>(null); // New ref for the dropzone area
 
-    // Atualizar a posição atual quando as props mudam
-    useEffect(() => {
-        setCurrentPosition({ x, y });
-    }, [x, y]);
-
     // Notificar componente pai sobre área do grupo para detecção de colisão
     useEffect(() => {
         const reportGroupArea = () => {
-            if (groupRef.current && dropzoneRef.current && onPositionChange) {
-                // Use the dropzone element's dimensions for more accurate collision detection
-                const groupRect = groupRef.current.getBoundingClientRect();
+            if (groupRef.current && dropzoneRef.current) {
                 const dropzoneRect = dropzoneRef.current.getBoundingClientRect();
 
                 window.dispatchEvent(new CustomEvent('register-card-group', {
@@ -97,7 +89,7 @@ const CardGroup: React.FC<CardGroupProps> = ({
                 detail: { groupId }
             }));
         };
-    }, [groupId, currentPosition.x, currentPosition.y, onPositionChange]);
+    }, [groupId]);
 
     // Evento de dragover para feedback visual
     useEffect(() => {
@@ -170,15 +162,15 @@ const CardGroup: React.FC<CardGroupProps> = ({
         if (mode === 'stack') {
             // For stack, place handle to the right of the top card
             return {
-                x: 90, // Just to the right of a card width (80px)
-                y: 65  // Middle of card height
+                x: -30, // Just to the right of a card width (80px)
+                y: 100  // Middle of card height
             };
         } else {
             // For fan, place handle at the end of the spread
             const totalWidth = cards.length * 30 + 80; // 30px spacing between cards + card width
             return {
-                x: totalWidth + 10, // Position handle to the right of the group
-                y: 65 // Position in the middle of the card height
+                x: totalWidth - (30 + totalWidth), // Position handle to the right of the group
+                y: 110 // Position in the middle of the card height
             };
         }
     };
@@ -236,15 +228,11 @@ const CardGroup: React.FC<CardGroupProps> = ({
             layoutId={groupId}
             drag
             dragMomentum={false}
-            onDragEnd={(e, info) => {
-                // Atualizar posição local
-                const newX = x;
-                const newY = y;
-                setCurrentPosition({ x: newX, y: newY });
-
-                // Usar o callback do React para notificar o componente pai sobre a mudança de posição
+            dragTransition={{ power: 0 }}
+            onDragEnd={(event, info) => {
                 if (onPositionChange) {
-                    onPositionChange(groupId, x + info.offset.x, info.offset.y);
+                    // Only update position when dragging is complete
+                    onPositionChange(groupId, x + info.offset.x, y + info.offset.y);
                 }
             }}
         >
