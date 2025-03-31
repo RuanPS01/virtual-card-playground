@@ -102,7 +102,7 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
 
     // Calcular espaçamento
     const spacing = getCardSpacing();
-    const expandedSpacing = spacing * 1.5; // Aumentar espaçamento durante o arrasto
+    const expandedSpacing = spacing * 3; // Aumentar espaçamento durante o arrasto
 
     // Calcular posição central total
     const totalWidth = cards.length > 1 ? (cards.length - 1) * expandedSpacing : 0;
