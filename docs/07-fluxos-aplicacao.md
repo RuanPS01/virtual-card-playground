@@ -31,7 +31,13 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Soltar carta sobre um grupo em pilha | Entra no topo do grupo |
 | Soltar carta sobre um grupo em leque | Entra na posição onde for solta; uma vaga se abre no leque para mostrar onde |
 | Arrastar uma carta dentro do leque | Reordena o grupo, como na mão (qualquer jogador pode, o grupo está na mesa) |
-| Arrastar a etiqueta do grupo | Move o grupo inteiro |
+| Arrastar a etiqueta do grupo pela mesa | Move o grupo inteiro |
+| Soltar a etiqueta do grupo sobre o monte | O grupo inteiro volta para o topo do monte |
+| Soltar a etiqueta do grupo na sua mão | Todas as cartas do grupo vão para o fim da sua mão |
+| Soltar a etiqueta do grupo sobre um jogador | Todas as cartas vão para a mão dele (a barra ampliada também aparece) |
+| Soltar a etiqueta do grupo sobre outro grupo | Os dois grupos se unem |
+| Soltar a etiqueta do grupo sobre uma carta solta | A carta vira a base do grupo, e o grupo vai para onde ela está |
+| Botão ao lado da etiqueta (só no leque) | Escolhe a ordem do leque: livre, valor ou manilha |
 | Tocar na etiqueta do grupo | Alterna pilha e leque |
 | Arrastar carta de um grupo para fora dele | Tira a carta do grupo; as outras se juntam |
 | Levar a carta até o topo da tela | A barra de jogadores aparece ampliada, com alvos grandes |
@@ -41,7 +47,8 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Seletor Aberta/Fechada | Define como as cartas da mão e do monte chegam à mesa |
 
 Menu: adicionar baralho, remover um baralho, remover cartas do monte,
-reiniciar (tudo volta ao monte), reiniciar com um baralho original, cor da mesa
+reiniciar (tudo volta ao monte), reiniciar com um baralho original, ordem de
+manilha, cor da mesa
 (feltro verde ou vinho), adversários (leques de cartas, o padrão, ou
 etiquetas), som, idioma, ajuda, instalar app e sair. A cor da mesa também pode ser escolhida
 na tela de entrada. As duas escolhas de visual valem só para quem escolheu.
@@ -98,6 +105,54 @@ dedo: quem segura a carta pela borda no celular continua acertando o leque.
 Em pilha não há posição visível, então a carta sempre entra no topo.
 
 ![Vaga aberta no leque durante o arrasto](assets/leque-reordenando.webp)
+
+### Ordem do leque
+
+Com o grupo aberto em leque aparece, ao lado da etiqueta, o botão de ordem:
+
+| Opção | Ordem |
+|---|---|
+| Livre (padrão) | A ordem manual: você arrasta as cartas para onde quiser |
+| Valor | Do 2 ao Ás (Ás alto); naipe como desempate |
+| Manilha (truco) | Da mais fraca à mais forte, pela ordem de manilha da sala (menu, "Ordem de manilha"). O padrão é a força do truco sem manilhas, do 4 ao 3 |
+
+Valor e manilha se atualizam sozinhos quando cartas entram ou saem. Enquanto o
+leque está ordenado, não há vaga para escolher: uma carta nova entra na
+posição da ordenação. Voltar para "Livre" recupera a ordem manual, com as
+cartas que entraram nesse meio tempo no fim, e o arrasto livre volta a valer.
+Cartas viradas para baixo ficam no fim, fora da ordenação. A ordem vale para
+a sala inteira, e a pilha (modo empilhado) sempre usa a ordem manual.
+
+![Leque ordenado por valor](assets/leque-ordenado.webp)
+
+### Ordem de manilha
+
+No menu da mesa, "Ordem de manilha" define a força das cartas usada nos leques
+ordenados por manilha. É configuração **da sala**: vale para todos, e quem
+mudar avisa os outros ("Fulano mudou a ordem de manilha para Mineiro").
+
+| Predefinição | Manilhas (da mais fraca à mais forte) |
+|---|---|
+| Paulista sem vira (padrão) | Nenhuma: só a força do truco, do 4 ao 3 |
+| Paulista com vira | A carta acima da vira, nos quatro naipes: ouros, espadas, copas, paus (zap). Escolhe-se a vira no diálogo; depois do 3, volta ao 4 |
+| Mineiro | Pica-fumo (7 de ouros), espadilha (Ás de espadas), 7 de copas, zap (4 de paus) |
+| Gaúcho | 7 de ouros, 7 de espadas, bastião (Ás de paus), espadão (Ás de espadas) |
+| Personalizado | Você monta a ordem dos 13 valores, a dos naipes (desempate) e a lista de manilhas |
+
+Abaixo das manilhas, a força segue a ordem dos valores, com o naipe como
+desempate. No personalizado, toca-se num item e usam-se os botões "Mais
+fraca" e "Mais forte"; manilhas podem ser adicionadas e removidas. O diálogo
+mostra a prévia do resultado antes de aplicar.
+
+![Ordem de manilha personalizada](assets/ordem-de-manilha.webp)
+
+### Levar o grupo inteiro
+
+A etiqueta do grupo funciona como uma carta grande: o destino é o que estiver
+embaixo dela ao soltar. As cartas vão juntas, numa ação só. Ao passar sobre um
+jogador, o grupo fica translúcido para o nome aparecer.
+
+![Grupo levado até um jogador pela barra ampliada](assets/grupo-para-jogador.webp)
 
 ## 7.4 Ciclo de uma ação
 

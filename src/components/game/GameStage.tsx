@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'reac
 import { animate, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import type { Rank, Suit } from '@shared/cards';
+import type { PileSort } from '@shared/pileOrder';
 import type { Action, ErrorCode, PlayerView, RoomView } from '@shared/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RemoveCardsDialog from '@/components/RemoveCardsDialog';
@@ -23,6 +24,7 @@ import HandTray from './HandTray';
 import HelpDialog from './HelpDialog';
 import { useInstallFlow } from '@/hooks/useInstallFlow';
 import InstallDialog from './InstallDialog';
+import ManilhaDialog from './ManilhaDialog';
 import PlayerReachBar from './PlayerReachBar';
 import TopBar from './TopBar';
 
@@ -59,6 +61,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
   const [removeOpen, setRemoveOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const installFlow = useInstallFlow();
+  const [manilhaOpen, setManilhaOpen] = useState(false);
 
   const registry = useMemo<SpriteRegistry>(() => new Map(), []);
 
@@ -127,6 +130,8 @@ const GameStage = ({ room, view }: GameStageProps) => {
     [send, onError],
   );
 
+  const onPileSort = useCallback((pileId: string, sort: PileSort) => void act({ type: 'setPileSort', pileId, sort }), [act]);
+
   const me = view.players.find((player) => player.id === view.me);
   const others = useMemo(() => view.players.filter((player) => player.id !== view.me), [view.players, view.me]);
   const opponentsView = useOpponentsView();
@@ -190,6 +195,8 @@ const GameStage = ({ room, view }: GameStageProps) => {
               onRemoveDeck={() => setConfirm({ kind: 'removeDeck' })}
               canRemoveDeck={totalCards > 52}
               onResetOriginal={() => setConfirm({ kind: 'resetOriginal' })}
+              onManilha={() => setManilhaOpen(true)}
+              manilhaLabel={t(`manilha.preset.${view.manilha.preset}`)}
               onHelp={() => setHelpOpen(true)}
               onInstall={installFlow.installed ? undefined : () => void installFlow.install()}
               onLeave={() => setConfirm({ kind: 'leave' })}
@@ -224,6 +231,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
               exitLookup={exitLookup}
               drag={drag}
               shuffleTick={shuffleTick}
+              onPileSort={onPileSort}
             >
               <AnimatePresence>
                 {drag.reachPlayers && <PlayerReachBar players={others} view={opponentsView} hover={drag.hover} />}
@@ -255,6 +263,12 @@ const GameStage = ({ room, view }: GameStageProps) => {
 
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
       <InstallDialog open={installFlow.helpOpen} method={installFlow.method} onOpenChange={installFlow.setHelpOpen} />
+      <ManilhaDialog
+        open={manilhaOpen}
+        current={view.manilha}
+        onOpenChange={setManilhaOpen}
+        onApply={(config) => void act({ type: 'setManilha', config })}
+      />
     </StageContext.Provider>
   );
 };

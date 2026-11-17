@@ -27,7 +27,11 @@ celular, em pé e deitado, é tão importante quanto no computador.
 - Arrasto visível para todos em tempo real.
 - Volta automática para a sala depois de recarregar ou perder a conexão.
 - Mesa com feltro verde ou vinho, como as mesas de jogo clássicas.
-- Grupos em leque reordenáveis à mão, como a própria mão do jogador.
+- Grupos em leque reordenáveis à mão, como a própria mão do jogador, ou
+  ordenados automaticamente por valor ou por manilha, com a ordem de manilha
+  escolhida pela sala (paulista, com vira, mineiro, gaúcho ou personalizada).
+- Grupos inteiros levados de uma vez para o monte, para uma mão ou para outro
+  grupo.
 - Adversários vistos como leques de cartas (padrão) ou como etiquetas, e uma barra
   ampliada para entregar cartas com precisão no celular.
 - Remover um baralho inteiro do monte e reiniciar com um único baralho original.

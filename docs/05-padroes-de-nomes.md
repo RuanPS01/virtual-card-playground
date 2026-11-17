@@ -43,6 +43,9 @@ Verbo ou destino em camelCase. A carta de origem vem sempre em `src`:
 | `flip` | Vira carta da mesa ou de grupo |
 | `movePile` | Move um grupo |
 | `setPileMode` | `fan` (leque) ou `stack` (pilha) |
+| `setPileSort` | Ordem de exibição do leque: `manual` (livre, padrão), `rank` (valor, do 2 ao Ás) ou `manilha` (pela ordem de manilha da sala) |
+| `setManilha` | Ordem de manilha da sala. `preset`: `paulista`, `vira` (com `vira`), `mineiro`, `gaucho` ou `custom` (com `ranks`, `suits` e `manilhas`). Predefinições são recalculadas pelo motor |
+| `sendPile` | Leva o grupo inteiro de uma vez: `to` é `deck`, `hand` (com `playerId` opcional), `pile` (une os grupos) ou `card` (a carta solta vira a base). O evento traz os ids em `cardIds` |
 | `shuffleDeck`, `addDeck`, `removeCards`, `reset` | Monte |
 | `removeDeck` | Tira do monte uma cópia de cada carta (desfaz um `addDeck`). Nunca tira a última cópia; cópias fora do monte ficam e são contadas em `skipped` |
 | `resetToOneDeck` | Recolhe tudo e deixa só um baralho original de 52 cartas, com ids novos |
@@ -75,6 +78,7 @@ Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `single_deck`,
 | `opponents.` | Visões dos adversários (`opponents.badges`, `opponents.fans`) |
 | `reach.` | Barra de jogadores ampliada durante o arrasto |
 | `pwa.`, `install.` | Avisos do app instalável e passo a passo de instalação |
+| `manilha.` | Diálogo de ordem de manilha (predefinições, editor, prévia) |
 | `confirm.<tipo>.title`, `.text`, `.ok` | Diálogos de confirmação |
 | `toast.` | Avisos |
 | `error.` | Códigos de erro |

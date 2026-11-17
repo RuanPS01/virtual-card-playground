@@ -27,13 +27,17 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | [`PlayerBadge`](../src/components/game/PlayerBadge.tsx) | Visão compacta (alternativa) de outro jogador: cor do assento, nome, mini versos, contagem. Alvo de soltura `player:ID`. Mostra botão de remover quando desconectado e recebe `onRemove`. Exporta `OpponentProps`, comum às duas visões de adversário |
 | [`OpponentFan`](../src/components/game/OpponentFan.tsx) | Visão padrão do adversário: a mão dele em mini leque de versos (até 12 visíveis) com o nome embaixo, sem caixa em volta. Mesmas props e mesmo papel da `PlayerBadge` |
 | [`PlayerReachBar`](../src/components/game/PlayerReachBar.tsx) | Barra de jogadores ampliada que aparece durante o arrasto perto do topo. Usa `PlayerBadge` ou `OpponentFan` (conforme a visão escolhida) com `anchor={false}`, para as cartas entregues voarem até a barra superior, e não até ela |
-| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover um baralho (desabilitado com um baralho só), remover cartas, reiniciar, reiniciar com um baralho original, cor da mesa, adversários, som, idioma, ajuda, instalar app (some quando já instalado), sair. Rola por dentro quando não cabe na altura |
+| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover um baralho (desabilitado com um baralho só), remover cartas, reiniciar, reiniciar com um baralho original, ordem de manilha (com o nome da atual), cor da mesa, adversários, som, idioma, ajuda, instalar app (some quando já instalado), sair. Rola por dentro quando não cabe na altura |
 | [`InstallDialog`](../src/components/game/InstallDialog.tsx) | Passo a passo de instalação para quem não tem o pedido direto do navegador (iPhone e outros). Usado pelo menu e pela tela de entrada |
 | [`HandTray`](../src/components/game/HandTray.tsx) | Bandeja inferior: nome, ordenar por valor ou naipe, seletor Aberta/Fechada, contador e embaralhar do monte. Expõe as âncoras `handRef` e `deckRef` |
 | [`CardLayer`](../src/components/game/CardLayer.tsx) | Camada única com o monte, todas as cartas visíveis (em `AnimatePresence`) e as etiquetas de grupo. Aceita `children` para sobreposições que ficam entre as cartas da mesa e a carta segurada (a `PlayerReachBar`) |
 | [`CardSprite`](../src/components/game/CardSprite.tsx) | Uma carta: persegue o alvo com mola, vira, inclina no hover, mostra quem a está arrastando, sai voando para o destino |
 | [`DeckStack`](../src/components/game/DeckStack.tsx) | O monte: camadas de volume, animação de embaralhar e a carta "fantasma" que se arrasta |
-| [`PileChip`](../src/components/game/PileChip.tsx) | Etiqueta de grupo: contagem, alça para mover o grupo, toque alterna pilha e leque |
+| [`PileChip`](../src/components/game/PileChip.tsx) | Etiqueta de grupo: contagem e alça para levar o grupo inteiro (mesa, monte, mãos, outro grupo, carta solta); toque alterna pilha e leque. No leque, mostra o `PileSortMenu` ao lado |
+| [`PileSortMenu`](../src/components/game/PileSortMenu.tsx) | Botão de ordem do leque (livre, valor, manilha), ao lado da alça |
+| [`ManilhaDialog`](../src/components/game/ManilhaDialog.tsx) | Ordem de manilha da sala: predefinições, escolha da vira, editor do personalizado e prévia. Aberto pelo menu |
+| [`OrderEditor`](../src/components/game/OrderEditor.tsx) | Lista ordenável por toque (seleciona e move com "Mais fraca" e "Mais forte"; remover opcional). Genérica |
+| [`CardChip`](../src/components/game/CardChip.tsx) | Carta em miniatura (valor e naipe em SVG) para listas e prévias |
 | [`CardFace`](../src/components/game/CardFace.tsx) | `CardFront`, `CardBack` e `SuitIcon` (naipes em SVG). Reaproveitado na entrada e no diálogo de remover cartas |
 | [`effects/FeltBackground`](../src/components/game/effects/FeltBackground.tsx) | Fundo de feltro (verde ou vinho) com textura de tecido. Usado na mesa e na entrada |
 | [`FeltPicker`](../src/components/game/FeltPicker.tsx) | Duas amostras de cor para escolher o feltro. Usado na entrada; no jogo a escolha fica no `GameMenu` |
@@ -57,6 +61,8 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 
 | Módulo | Conteúdo |
 |---|---|
+| [`shared/manilha.ts`](../shared/manilha.ts) | `presetConfig`, `sanitizeManilha`, `manilhaStrength`, `manilhaRankForVira`, `DEFAULT_MANILHA`: ordem de manilha da sala |
+| [`shared/pileOrder.ts`](../shared/pileOrder.ts) | `sortPile(cartas, ordem)`, `PILE_SORTS`, `isPileSort`: ordem de exibição do leque, igual em todos os clientes |
 | [`game/layout.ts`](../src/game/layout.ts) | `cardSizeFor`, `tableToStage`, `stageToTable`, `pileGeometry`, `handSlots`, `nearestSlot`, `hashOf` |
 | [`game/targets.ts`](../src/game/targets.ts) | `computeTargets`: alvo (x, y, rotação, escala, camada) de cada carta, com as vagas abertas na mão (`handGap`) e no leque (`pileGap`) |
 | [`game/stage.ts`](../src/game/stage.ts) | `StageContext`, `useStage`, `SpriteRegistry`, `FxApi`, `seatColor`, `DECK_KEY`, `pileKey`, `prefersReducedMotion` |

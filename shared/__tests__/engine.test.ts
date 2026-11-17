@@ -230,6 +230,103 @@ describe('grupos', () => {
     expect(cardsIn(state, 'pile', pileId).map((card) => card.id)).toEqual([c, a]);
   });
 
+  // Monta um grupo em leque com `size` cartas viradas para cima no centro.
+  const fanOf = (size: number, at = 0.5) => {
+    let state = room();
+    state = must(state, 'p1', { type: 'toTable', src: { from: 'deck' }, x: at, y: at, faceUp: true });
+    const base = cardsIn(state, 'table').at(-1)!.id;
+    state = must(state, 'p1', { type: 'stackOn', src: { from: 'deck' }, targetId: base, mode: 'fan', faceUp: true });
+    const pileId = state.cards[base].owner!;
+    for (let i = 2; i < size; i++) state = must(state, 'p1', { type: 'toPile', src: { from: 'deck' }, pileId, faceUp: true });
+    return { state, pileId, ids: cardsIn(state, 'pile', pileId).map((c) => c.id) };
+  };
+
+  it('grupo inteiro vai para o topo do monte, fechado e com ids novos', () => {
+    const { state: start, pileId, ids } = fanOf(4);
+    const ranks = ids.map((id) => start.cards[id].rank);
+    const state = must(start, 'p2', { type: 'sendPile', pileId, to: { zone: 'deck' } });
+    expect(state.piles).toEqual({});
+    expect(cardsIn(state, 'deck')).toHaveLength(52);
+    expect(cardsIn(state, 'deck').slice(-4).map((c) => c.rank)).toEqual(ranks);
+    expect(cardsIn(state, 'deck').slice(-4).every((c) => !c.faceUp && !ids.includes(c.id))).toBe(true);
+    expect(state.last).toMatchObject({ type: 'sendPile', cardIds: ids, to: { zone: 'deck' }, count: 4 });
+  });
+
+  it('grupo inteiro vai para a própria mão ou para a de outro jogador', () => {
+    const { state: start, pileId, ids } = fanOf(3);
+    let state = draw(start, 'p1');
+    state = must(state, 'p1', { type: 'sendPile', pileId, to: { zone: 'hand' } });
+    expect(handIds(state, 'p1').slice(-3)).toEqual(ids);
+    expect(handIds(state, 'p1')).toHaveLength(4);
+    const other = fanOf(3);
+    state = must(other.state, 'p1', { type: 'sendPile', pileId: other.pileId, to: { zone: 'hand', playerId: 'p2' } });
+    expect(handIds(state, 'p2')).toEqual(other.ids);
+    expect(state.piles).toEqual({});
+    expect(total(state)).toBe(52);
+  });
+
+  it('grupo sobre outro grupo une os dois, e o destino mantém posição e ordenação', () => {
+    const fan = fanOf(3, 0.2);
+    const target = fan.pileId;
+    let state = fan.state;
+    state = must(state, 'p1', { type: 'setPileSort', pileId: target, sort: 'rank' });
+    state = must(state, 'p1', { type: 'toTable', src: { from: 'deck' }, x: 0.8, y: 0.8, faceUp: true });
+    const base = cardsIn(state, 'table').at(-1)!.id;
+    state = must(state, 'p1', { type: 'stackOn', src: { from: 'deck' }, targetId: base, mode: 'stack' });
+    const source = state.cards[base].owner!;
+    const moving = cardsIn(state, 'pile', source).map((c) => c.id);
+    const before = cardsIn(state, 'pile', target).map((c) => c.id);
+    state = must(state, 'p2', { type: 'sendPile', pileId: source, to: { zone: 'pile', pileId: target } });
+    expect(Object.keys(state.piles)).toEqual([target]);
+    expect(cardsIn(state, 'pile', target).map((c) => c.id)).toEqual([...before, ...moving]);
+    expect(state.piles[target]).toMatchObject({ x: 0.2, y: 0.2, sort: 'rank', mode: 'fan' });
+    expect(applyAction(state, 'p1', { type: 'sendPile', pileId: target, to: { zone: 'pile', pileId: target } })).toEqual({ ok: false, error: 'pile_not_found' });
+  });
+
+  it('grupo sobre carta solta: a carta vira a base e o grupo vai para onde ela está', () => {
+    const fan = fanOf(3, 0.3);
+    const { pileId, ids } = fan;
+    let state = fan.state;
+    state = must(state, 'p1', { type: 'toTable', src: { from: 'deck' }, x: 0.9, y: 0.1 });
+    const loose = cardsIn(state, 'table').at(-1)!.id;
+    state = must(state, 'p2', { type: 'sendPile', pileId, to: { zone: 'card', cardId: loose } });
+    expect(cardsIn(state, 'pile', pileId).map((c) => c.id)).toEqual([loose, ...ids]);
+    expect(state.piles[pileId]).toMatchObject({ x: 0.9, y: 0.1 });
+    expect(state.cards[loose].faceUp).toBe(false);
+  });
+
+  it('grupo sobre carta que acabou de entrar em outro grupo une com esse grupo', () => {
+    const fan = fanOf(3, 0.3);
+    const { pileId } = fan;
+    let state = fan.state;
+    // A carta solta entra em outro grupo antes de o pedido chegar.
+    state = must(state, 'p1', { type: 'toTable', src: { from: 'deck' }, x: 0.7, y: 0.7 });
+    const loose = cardsIn(state, 'table').at(-1)!.id;
+    state = must(state, 'p1', { type: 'stackOn', src: { from: 'deck' }, targetId: loose });
+    const otherPile = state.cards[loose].owner!;
+    state = must(state, 'p2', { type: 'sendPile', pileId, to: { zone: 'card', cardId: loose } });
+    expect(Object.keys(state.piles)).toEqual([otherPile]);
+    expect(cardsIn(state, 'pile', otherPile)).toHaveLength(5);
+  });
+
+  it('ordem de manilha é da sala: qualquer jogador muda e todos veem', () => {
+    let state = room();
+    expect(state.manilha.preset).toBe('paulista');
+    state = must(state, 'p2', { type: 'setManilha', config: { preset: 'vira', vira: '7' } as never });
+    expect(state.manilha).toMatchObject({ preset: 'vira', vira: '7' });
+    expect(state.manilha.manilhas.map((m) => m.rank)).toEqual(['Q', 'Q', 'Q', 'Q']);
+    expect(viewFor(state, 'p1').manilha).toEqual(state.manilha);
+    expect(applyAction(state, 'p1', { type: 'setManilha', config: { preset: 'custom' } as never })).toEqual({ ok: false, error: 'bad_action' });
+  });
+
+  it('ordenação é guardada no grupo e valida o valor', () => {
+    const { state: start, pileId } = fanOf(2);
+    expect(start.piles[pileId].sort).toBe('manual');
+    const state = must(start, 'p2', { type: 'setPileSort', pileId, sort: 'manilha' });
+    expect(state.piles[pileId].sort).toBe('manilha');
+    expect(applyAction(state, 'p1', { type: 'setPileSort', pileId, sort: 'naipe' as never })).toEqual({ ok: false, error: 'bad_action' });
+  });
+
   it('move o grupo e troca o modo', () => {
     const { state: start, a, b } = twoOnTable();
     let state = must(start, 'p1', { type: 'stackOn', src: { from: 'card', cardId: b }, targetId: a, mode: 'fan' });
@@ -395,6 +492,21 @@ describe('leitura do Firebase', () => {
     delete stored.last;
     for (const card of Object.values<Record<string, unknown>>(stored.cards)) delete card.owner;
     expect(normalizeState(stored)).toEqual(state);
+  });
+
+  it('sala salva antes da ordem de manilha existir volta com o padrão', () => {
+    const stored = JSON.parse(JSON.stringify(room()));
+    delete stored.manilha;
+    expect(normalizeState(stored)!.manilha).toMatchObject({ preset: 'paulista', manilhas: [] });
+  });
+
+  it('grupo salvo antes da ordenação existir volta como livre', () => {
+    let state = room();
+    state = must(state, 'p1', { type: 'toTable', src: { from: 'deck' }, x: 0.5, y: 0.5 });
+    state = must(state, 'p1', { type: 'stackOn', src: { from: 'deck' }, targetId: cardsIn(state, 'table')[0].id });
+    const stored = JSON.parse(JSON.stringify(state));
+    for (const pile of Object.values<Record<string, unknown>>(stored.piles)) delete pile.sort;
+    expect(Object.values(normalizeState(stored)!.piles)[0].sort).toBe('manual');
   });
 
   it('ignora sala em formato antigo e resto de jogador sem nome', () => {

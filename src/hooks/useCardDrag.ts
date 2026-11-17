@@ -21,7 +21,8 @@ export type DragSource =
   | { kind: 'pile'; pileId: string };
 
 type DropTarget =
-  | { kind: 'hand'; index: number; beforeId: string | null }
+  /** index null: sem vaga (o grupo inteiro entra no fim da mão). */
+  | { kind: 'hand'; index: number | null; beforeId: string | null }
   | { kind: 'player'; playerId: string }
   | { kind: 'deck' }
   /** index e beforeId só existem no leque, onde a posição é visível. */
@@ -137,19 +138,36 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
       const center = centerOf(drag, m);
       if (!center) return null;
 
+      const origin = stageOrigin();
+
+      // Grupo inteiro: os mesmos destinos de uma carta, decididos pelo que
+      // está sob a etiqueta (é por ela que o grupo é segurado). O grupo
+      // entra no fim do destino, sem vaga, porque são várias cartas de uma vez.
       if (drag.source.kind === 'pile') {
+        const ownId = drag.source.pileId;
+        for (const element of document.elementsFromPoint(drag.px + origin.x, drag.py + origin.y)) {
+          const data = (element as HTMLElement).dataset;
+          const drop = data?.drop;
+          if (!drop || (data.key && drag.keys.includes(data.key))) continue;
+          if (drop === 'hand') return { kind: 'hand', index: null, beforeId: null };
+          if (drop === 'deck') return { kind: 'deck' };
+          if (drop.startsWith('player:')) return { kind: 'player', playerId: drop.slice(7) };
+          if (drop.startsWith('pile:') && drop.slice(5) !== ownId) return { kind: 'pile', pileId: drop.slice(5), index: null, beforeId: null };
+          if (drop.startsWith('card:')) return { kind: 'card', cardId: drop.slice(5) };
+          if (drop === 'table') break;
+        }
         return { kind: 'table', ...stageToTable(m, center.x, center.y) };
       }
 
-      const origin = stageOrigin();
       const card = drag.source.kind === 'card' ? now.view.cards.find((c) => c.id === (drag.source as { cardId: string }).cardId) : null;
 
       const pileTarget = (pileId: string): DropTarget | null | undefined => {
         const pile = now.view.piles.find((p) => p.id === pileId);
         if (!pile) return undefined;
-        if (pile.mode !== 'fan') {
-          // Na pilha as cartas se sobrepõem e não há posição para escolher:
-          // soltar na própria pilha cancela, e de fora vai para o topo.
+        if (pile.mode !== 'fan' || pile.sort !== 'manual') {
+          // Na pilha as cartas se sobrepõem, e num leque ordenado a posição é
+          // a da ordenação: não há vaga para escolher. Soltar no próprio grupo
+          // cancela, e de fora entra no fim da ordem manual.
           return card?.pileId === pileId ? null : { kind: 'pile', pileId, index: null, beforeId: null };
         }
         // No leque a posição aparece, então vale a mesma regra da mão: a
@@ -215,7 +233,21 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
     const now = world.current;
     if (!now) return null;
     if (source.kind === 'pile') {
-      return target.kind === 'table' ? { type: 'movePile', pileId: source.pileId, x: target.x, y: target.y } : null;
+      const pileId = source.pileId;
+      switch (target.kind) {
+        case 'table':
+          return { type: 'movePile', pileId, x: target.x, y: target.y };
+        case 'deck':
+          return { type: 'sendPile', pileId, to: { zone: 'deck' } };
+        case 'hand':
+          return { type: 'sendPile', pileId, to: { zone: 'hand' } };
+        case 'player':
+          return { type: 'sendPile', pileId, to: { zone: 'hand', playerId: target.playerId } };
+        case 'pile':
+          return { type: 'sendPile', pileId, to: { zone: 'pile', pileId: target.pileId } };
+        case 'card':
+          return { type: 'sendPile', pileId, to: { zone: 'card', cardId: target.cardId } };
+      }
     }
     const src: CardSource = source.kind === 'deck' ? { from: 'deck' } : { from: 'card', cardId: source.cardId };
     const card = source.kind === 'card' ? now.view.cards.find((c) => c.id === source.cardId) : null;
@@ -407,7 +439,7 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
         // Barra ampliada: liga quando o ponteiro chega perto do topo e só
         // desliga quando ele sai de baixo dela, com folga, para não piscar
         // no limite. Grupo inteiro não vai para a mão de ninguém.
-        if (drag.source.kind !== 'pile' && now.view.players.length > 1) {
+        if (now.view.players.length > 1) {
           const bar = document.querySelector<HTMLElement>('.player-reach');
           const limit = bar ? bar.getBoundingClientRect().bottom - stageOrigin().y + m.cardH * 0.3 : m.play.y + m.cardH * 0.35;
           setReachPlayers(drag.py < limit);
@@ -421,10 +453,16 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
         const overPlayer = target?.kind === 'player';
         if (overPlayer !== drag.overPlayer) {
           drag.overPlayer = overPlayer;
-          const handle = registry.get(drag.keys[0]);
-          if (handle) animate(handle.scale, handle.base() * (overPlayer ? 0.55 : 1.12), { duration: 0.14 });
-          const element = document.querySelector<HTMLElement>(`[data-key="${drag.keys[0]}"]`);
-          if (element) element.dataset.overPlayer = String(overPlayer);
+          // Grupo inteiro não encolhe (cada carta encolheria em volta do
+          // próprio centro e o grupo se desmancharia): só fica translúcido.
+          if (drag.source.kind !== 'pile') {
+            const handle = registry.get(drag.keys[0]);
+            if (handle) animate(handle.scale, handle.base() * (overPlayer ? 0.55 : 1.12), { duration: 0.14 });
+          }
+          for (const key of drag.source.kind === 'pile' ? drag.keys : [drag.keys[0]]) {
+            const element = document.querySelector<HTMLElement>(`[data-key="${key}"]`);
+            if (element) element.dataset.overPlayer = String(overPlayer);
+          }
         }
         // Reordenar dentro do próprio leque não acende o grupo: a vaga aberta
         // já mostra o que vai acontecer.

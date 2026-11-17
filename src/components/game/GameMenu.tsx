@@ -1,4 +1,4 @@
-import { CircleHelp, Download, Languages, ListFilter, ListRestart, LogOut, Menu, PackageMinus, PackagePlus, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { CircleHelp, Crown, Download, Languages, ListFilter, ListRestart, LogOut, Menu, PackageMinus, PackagePlus, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,9 @@ export interface GameMenuProps {
   canRemoveDeck: boolean;
   onRemoveCards(): void;
   onResetOriginal(): void;
+  onManilha(): void;
+  /** Nome da ordem de manilha atual da sala, mostrado ao lado do item. */
+  manilhaLabel: string;
   onReset(): void;
   onHelp(): void;
   /** Ausente quando o app já está instalado e aberto como app. */
@@ -31,7 +34,19 @@ export interface GameMenuProps {
   onLeave(): void;
 }
 
-const GameMenu = ({ onAddDeck, onRemoveDeck, canRemoveDeck, onRemoveCards, onReset, onResetOriginal, onHelp, onInstall, onLeave }: GameMenuProps) => {
+const GameMenu = ({
+  onAddDeck,
+  onRemoveDeck,
+  canRemoveDeck,
+  onRemoveCards,
+  onReset,
+  onResetOriginal,
+  onManilha,
+  manilhaLabel,
+  onHelp,
+  onInstall,
+  onLeave,
+}: GameMenuProps) => {
   const t = useT();
   const muted = useMuted();
   const locale = getLocale();
@@ -67,6 +82,11 @@ const GameMenu = ({ onAddDeck, onRemoveDeck, canRemoveDeck, onRemoveCards, onRes
         <DropdownMenuItem onSelect={onResetOriginal}>
           <ListRestart className="size-4" />
           {t('menu.resetOriginal')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onManilha}>
+          <Crown className="size-4" />
+          <span className="flex-1">{t('menu.manilha')}</span>
+          <span className="text-xs text-muted-foreground">{manilhaLabel}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-muted-foreground">{t('menu.felt')}</DropdownMenuLabel>

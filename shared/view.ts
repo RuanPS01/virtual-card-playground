@@ -50,6 +50,7 @@ export const viewFor = (state: RoomState, playerId: string): RoomView => {
     deckCount,
     cards,
     piles: Object.values(state.piles),
+    manilha: state.manilha,
     last: state.last,
   };
 };

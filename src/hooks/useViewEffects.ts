@@ -8,7 +8,7 @@ import type { ActionEvent, PlayerView, RoomView } from '@shared/types';
 import type { StageMetrics } from '@/game/layout';
 import { pileKey, type FxApi } from '@/game/stage';
 import type { StageTargets } from '@/game/targets';
-import { t } from '@/lib/i18n';
+import { t, type MessageKey } from '@/lib/i18n';
 import { sfx } from '@/lib/sfx';
 
 interface World {
@@ -74,10 +74,41 @@ const play = (event: ActionEvent, { view, metrics, targets }: World, fx: FxApi):
     case 'movePile':
       sfx.drop();
       break;
+    case 'setManilha': {
+      sfx.flip();
+      // A ordem muda os leques de todo mundo: todos precisam saber quem mudou.
+      const preset = t(`manilha.preset.${view.manilha.preset}` as MessageKey);
+      const author = view.players.find((player) => player.id === event.by)?.name ?? '';
+      toast.message(mine ? t('toast.manilhaMine', { preset }) : t('toast.manilhaOther', { name: author, preset }));
+      break;
+    }
     case 'setPileMode':
+    case 'setPileSort':
       sfx.flip();
       if (event.to?.zone === 'pile') fx.pop(pileKey(event.to.pileId));
       break;
+    case 'sendPile': {
+      const count = event.count ?? 0;
+      if (event.to?.zone === 'deck') {
+        sfx.shuffle();
+        fx.text(deck.x, deck.y - cardH * 0.62, `+${count}`, 'blue');
+      } else if (event.to?.zone === 'hand') {
+        sfx.deal();
+        if (event.to.playerId !== view.me) {
+          const at = badgeBottom(event.to.playerId);
+          if (at) fx.text(at.x, at.y, `+${count}`, 'gold');
+        } else {
+          // Cada carta "assenta" na mão, uma depois da outra.
+          event.cardIds?.forEach((id, index) => setTimeout(() => fx.pop(id), 200 + index * 45));
+        }
+      } else if (event.to?.zone === 'pile') {
+        sfx.stack();
+        const pile = targets?.piles.get(event.to.pileId);
+        if (pile) fx.burst(pile.cx, pile.cy, 'spark');
+        fx.pop(pileKey(event.to.pileId));
+      }
+      break;
+    }
     case 'shuffleDeck':
       sfx.shuffle();
       fx.shake(0.6);

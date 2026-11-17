@@ -2,6 +2,7 @@
 // só, e esta função diz onde ela deve estar. Mudar de zona (mesa, grupo, mão)
 // é só mudar de alvo: o sprite voa sozinho até lá, sem remontar nada.
 
+import { sortPile } from '@shared/pileOrder';
 import type { CardView, RoomView } from '@shared/types';
 import {
   handSlots,
@@ -105,7 +106,13 @@ export const computeTargets = ({ view, metrics: m, held, handGap, pileGap, live 
   }
 
   for (const pile of view.piles) {
-    const members = view.cards.filter((card) => card.zone === 'pile' && card.pileId === pile.id).sort(byOrder);
+    // A ordenação (valor, manilha) só vale com o grupo aberto em leque; na
+    // pilha a carta de cima é sempre a última que entrou.
+    const members = sortPile(
+      view.cards.filter((card) => card.zone === 'pile' && card.pileId === pile.id),
+      pile.mode === 'fan' ? pile.sort : 'manual',
+      view.manilha,
+    );
     const drag = livePiles.get(pile.id);
     const center = drag ? tableToStage(m, drag.x, drag.y) : undefined;
     // Igual à mão: a carta que o jogador tirou do leque deixa as outras se
@@ -113,7 +120,8 @@ export const computeTargets = ({ view, metrics: m, held, handGap, pileGap, live 
     // inteiro está sendo movido, nada se reorganiza.
     const wholePile = held.has(`pile:${pile.id}`);
     const free = wholePile ? members : members.filter((card) => !held.has(card.id));
-    const gap = !wholePile && pile.mode === 'fan' && pileGap?.pileId === pile.id ? Math.min(pileGap.index, free.length) : null;
+    const gap =
+      !wholePile && pile.mode === 'fan' && pile.sort === 'manual' && pileGap?.pileId === pile.id ? Math.min(pileGap.index, free.length) : null;
     const geometry = pileGeometry(m, pile, Math.max(1, free.length + (gap === null ? 0 : 1)), center);
     piles.set(pile.id, geometry);
     const natural = free.length === members.length ? geometry : pileGeometry(m, pile, members.length, center);

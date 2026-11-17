@@ -10,6 +10,7 @@ const ITEMS: MessageKey[] = [
   'help.flip',
   'help.group',
   'help.pileOrder',
+  'help.pileMove',
   'help.reorder',
   'help.face',
   'help.give',

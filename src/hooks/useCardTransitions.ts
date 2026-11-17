@@ -54,9 +54,11 @@ export const useCardTransitions = (
     exits.current = new Map();
     for (const id of before) {
       if (now.has(id) || !last) continue;
-      if (last.type === 'reset' || last.type === 'resetToOneDeck' || (last.cardId === id && last.to?.zone === 'deck')) {
+      // Uma carta sozinha (cardId) ou um grupo inteiro (cardIds).
+      const moved = last.cardId === id || !!last.cardIds?.includes(id);
+      if (last.type === 'reset' || last.type === 'resetToOneDeck' || (moved && last.to?.zone === 'deck')) {
         exits.current.set(id, metrics.deck);
-      } else if (last.cardId === id && last.to?.zone === 'hand' && last.to.playerId !== view.me) {
+      } else if (moved && last.to?.zone === 'hand' && last.to.playerId !== view.me) {
         const target = badgeCenter(stageRef.current, last.to.playerId);
         if (target) exits.current.set(id, target);
       }
