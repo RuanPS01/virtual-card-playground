@@ -52,11 +52,10 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
-				},
-				table: {
-					DEFAULT: 'hsl(120, 30%, 25%)',
-					dark: 'hsl(120, 30%, 20%)'
 				}
+			},
+			fontFamily: {
+				sans: ['"Jersey 15"', 'ui-monospace', 'Menlo', 'Consolas', 'monospace']
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
