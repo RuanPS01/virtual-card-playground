@@ -330,6 +330,189 @@
   }
 
   /* ------------------------------------------------------------------------
+     Adversários em leque (visão alternativa à etiqueta)
+     ------------------------------------------------------------------------ */
+  .opp-fan {
+    --mini-w: 20px;
+    --mini-h: 28px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 76px;
+    max-width: 10rem;
+    flex-shrink: 0;
+    /* Sem caixa em volta: as cartas e o nome ficam direto sobre o feltro. */
+    padding: 2px 4px;
+    border-radius: 12px;
+    transition: background-color 120ms;
+  }
+
+  .opp-fan-cards {
+    position: relative;
+    width: calc(var(--mini-w) * (1 + 2 * var(--fan-spread, 0)) + var(--mini-w) * 0.6);
+    height: calc(var(--mini-h) + var(--mini-w) * 0.35);
+    transition: transform 140ms ease-out;
+  }
+
+  .opp-fan-card,
+  .opp-fan-empty {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: var(--mini-w);
+    height: var(--mini-h);
+    margin-left: calc(var(--mini-w) / -2);
+    border-radius: calc(var(--mini-w) * 0.16);
+  }
+
+  .opp-fan-card {
+    border: 1.5px solid hsl(var(--pc-edge));
+    background: hsl(var(--pc-back));
+    box-shadow:
+      inset 0 0 0 calc(var(--mini-w) * 0.08) hsl(var(--pc-back)),
+      inset 0 0 0 calc(var(--mini-w) * 0.13) hsl(var(--pc-paper) / 0.75),
+      0 2px 0 hsl(var(--shadow) / 0.45);
+    /* Gira em torno de um ponto abaixo das cartas: é o que forma o leque. */
+    transform-origin: 50% 130%;
+    transform: translateX(calc(var(--t) * var(--fan-spread) * var(--mini-w))) translateY(calc(var(--t) * var(--t) * 2px))
+      rotate(calc(var(--t) * var(--fan-angle)));
+  }
+
+  .opp-fan-empty {
+    border: 1.5px dashed hsl(var(--felt-line) / 0.55);
+  }
+
+  .opp-fan-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    padding: 1px 8px;
+    font-size: 15px;
+    line-height: 1.3;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    background: hsl(var(--card) / 0.86);
+    box-shadow: 0 2px 0 hsl(var(--shadow) / 0.5);
+  }
+
+  .opp-fan[data-hover='true'] .opp-fan-cards {
+    transform: translateY(-3px) scale(1.12);
+  }
+
+  .opp-fan[data-hover='true'] .opp-fan-name {
+    border-color: hsl(var(--primary));
+  }
+
+  .opp-fan[data-offline='true'] {
+    opacity: 0.6;
+  }
+
+  .hud-players[data-view='fans'] {
+    justify-content: center;
+    gap: 10px;
+  }
+
+  /* Celular deitado: a altura é curta, o leque fica menor. */
+  .stage[data-compact='true'] .opp-fan {
+    --mini-w: 14px;
+    --mini-h: 20px;
+  }
+
+  /* ------------------------------------------------------------------------
+     Barra de jogadores ampliada (durante o arrasto, perto do topo)
+     ------------------------------------------------------------------------ */
+  .player-reach {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    /* Acima das cartas da mesa e da mão, abaixo da carta segurada. */
+    z-index: 850000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 12px max(10px, env(safe-area-inset-left));
+    border-bottom: 2px solid hsl(var(--border));
+    background: hsl(var(--card) / 0.95);
+    box-shadow: 0 6px 0 hsl(var(--shadow) / 0.45);
+    transform-origin: top center;
+  }
+
+  .player-reach-title {
+    font-size: 15px;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Carta segurada sobre um jogador: encolhida (escala no JS) e translúcida. */
+  .pc-sprite[data-over-player='true'] .pc-bob {
+    opacity: 0.55;
+    transition: opacity 120ms;
+  }
+
+  .player-reach-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 14px;
+    width: 100%;
+  }
+
+  .player-reach .player-badge {
+    height: 60px;
+    max-width: 17rem;
+    padding: 0 18px;
+    gap: 10px;
+    font-size: 22px;
+    border-radius: 14px;
+  }
+
+  .player-reach .player-dot {
+    width: 14px;
+    height: 14px;
+  }
+
+  .player-reach .mini-card {
+    width: 15px;
+    height: 21px;
+    margin-left: -9px;
+  }
+
+  .player-reach .opp-fan {
+    --mini-w: 34px;
+    --mini-h: 48px;
+    padding: 4px 8px;
+  }
+
+  .player-reach .opp-fan-name {
+    font-size: 19px;
+  }
+
+  .player-reach .player-badge[data-hover='true'],
+  .player-reach .opp-fan[data-hover='true'] {
+    background: hsl(var(--accent));
+  }
+
+  .player-reach .player-badge[data-hover='true'] {
+    transform: scale(1.1);
+  }
+
+  @media (max-width: 420px) {
+    .player-reach .player-badge {
+      height: 52px;
+      padding: 0 14px;
+      font-size: 19px;
+    }
+
+    .player-reach .opp-fan {
+      --mini-w: 28px;
+      --mini-h: 40px;
+    }
+  }
+
+  /* ------------------------------------------------------------------------
      Mesa
      ------------------------------------------------------------------------ */
   .play-area {

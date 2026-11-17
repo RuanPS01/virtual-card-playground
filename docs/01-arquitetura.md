@@ -85,7 +85,9 @@ src/
     ├── realtime/     Transportes (WebSocket e Firebase) e sessão
     ├── i18n.ts       Textos pt-BR e en
     ├── sfx.ts        Sons sintetizados
+    ├── preference.ts Preferências do jogador no navegador
     ├── felt.ts       Cor da mesa (verde ou vinho)
+    ├── opponentsView.ts Adversários como etiquetas ou leques
     ├── feltTexture.ts Textura de tecido do feltro
     └── tokens.ts     Leitura dos tokens de cor em JS
 ```

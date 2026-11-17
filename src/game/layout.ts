@@ -168,8 +168,8 @@ export const handSlots = (m: StageMetrics, count: number): HandSlot[] => {
   });
 };
 
-/** Índice da vaga mais próxima de um x do palco. */
-export const nearestSlot = (slots: HandSlot[], x: number): number => {
+/** Índice da vaga mais próxima de um x do palco (vagas da mão ou de um leque). */
+export const nearestSlot = (slots: ReadonlyArray<{ x: number }>, x: number): number => {
   let best = 0;
   let bestDistance = Infinity;
   slots.forEach((slot, index) => {

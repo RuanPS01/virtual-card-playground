@@ -186,6 +186,50 @@ describe('grupos', () => {
     expect(cardsIn(state, 'pile', Object.keys(state.piles)[0])).toHaveLength(3);
   });
 
+  it('reordena as cartas dentro do grupo por id', () => {
+    const { state: start, a, b } = twoOnTable();
+    let state = must(start, 'p1', { type: 'stackOn', src: { from: 'card', cardId: b }, targetId: a, mode: 'fan' });
+    const pileId = Object.keys(state.piles)[0];
+    state = must(state, 'p1', { type: 'toPile', src: { from: 'deck' }, pileId, faceUp: true });
+    const c = cardsIn(state, 'pile', pileId).at(-1)!.id;
+    const ids = () => cardsIn(state, 'pile', pileId).map((card) => card.id);
+    expect(ids()).toEqual([a, b, c]);
+
+    // Qualquer jogador pode reordenar: o grupo está na mesa, e não na mão.
+    state = must(state, 'p2', { type: 'toPile', src: { from: 'card', cardId: c }, pileId, beforeId: a });
+    expect(ids()).toEqual([c, a, b]);
+    state = must(state, 'p1', { type: 'toPile', src: { from: 'card', cardId: c }, pileId, beforeId: null });
+    expect(ids()).toEqual([a, b, c]);
+    state = must(state, 'p1', { type: 'toPile', src: { from: 'card', cardId: a }, pileId, beforeId: c });
+    expect(ids()).toEqual([b, a, c]);
+    // Reordenar não muda a face nem tira ninguém do grupo.
+    expect(state.cards[a].faceUp).toBe(false);
+    expect(Object.keys(state.piles)).toEqual([pileId]);
+    expect(total(state)).toBe(52);
+  });
+
+  it('insere carta vinda de fora em uma posição do grupo', () => {
+    const { state: start, a, b } = twoOnTable();
+    let state = must(start, 'p1', { type: 'stackOn', src: { from: 'card', cardId: b }, targetId: a, mode: 'fan' });
+    const pileId = Object.keys(state.piles)[0];
+    state = draw(state, 'p2');
+    const [fromHand] = handIds(state, 'p2');
+    state = must(state, 'p2', { type: 'toPile', src: { from: 'card', cardId: fromHand }, pileId, beforeId: b });
+    expect(cardsIn(state, 'pile', pileId).map((card) => card.id)).toEqual([a, fromHand, b]);
+    expect(state.cards[fromHand].faceUp).toBe(true);
+  });
+
+  it('vai para o topo quando a carta de referência saiu do grupo no meio do caminho', () => {
+    const { state: start, a, b } = twoOnTable();
+    let state = must(start, 'p1', { type: 'stackOn', src: { from: 'card', cardId: b }, targetId: a, mode: 'fan' });
+    const pileId = Object.keys(state.piles)[0];
+    state = must(state, 'p1', { type: 'toPile', src: { from: 'deck' }, pileId });
+    const c = cardsIn(state, 'pile', pileId).at(-1)!.id;
+    state = must(state, 'p2', { type: 'toHand', src: { from: 'card', cardId: b } });
+    state = must(state, 'p1', { type: 'toPile', src: { from: 'card', cardId: a }, pileId, beforeId: b });
+    expect(cardsIn(state, 'pile', pileId).map((card) => card.id)).toEqual([c, a]);
+  });
+
   it('move o grupo e troca o modo', () => {
     const { state: start, a, b } = twoOnTable();
     let state = must(start, 'p1', { type: 'stackOn', src: { from: 'card', cardId: b }, targetId: a, mode: 'fan' });

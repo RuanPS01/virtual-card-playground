@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FELTS, setFelt, useFelt, type Felt } from '@/lib/felt';
 import { getLocale, setLocale, useT } from '@/lib/i18n';
+import { OPPONENT_VIEWS, setOpponentsView, useOpponentsView, type OpponentsView } from '@/lib/opponentsView';
 import { setMuted, useMuted } from '@/lib/sfx';
 
 // Ações da mesa que não são de uso constante ficam em um menu só. No celular
@@ -29,6 +30,7 @@ const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMe
   const muted = useMuted();
   const locale = getLocale();
   const felt = useFelt();
+  const opponents = useOpponentsView();
 
   return (
     <DropdownMenu>
@@ -64,6 +66,14 @@ const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMe
             >
               <span className="felt-swatch" data-felt={option} />
               {t(`felt.${option}`)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+        <DropdownMenuLabel className="text-muted-foreground">{t('menu.opponents')}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={opponents} onValueChange={(value) => setOpponentsView(value as OpponentsView)}>
+          {OPPONENT_VIEWS.map((option) => (
+            <DropdownMenuRadioItem key={option} value={option} className="gap-2" onSelect={(event) => event.preventDefault()}>
+              {t(`opponents.${option}`)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>

@@ -67,6 +67,7 @@ const ptBR = {
   'menu.removeCards': 'Remover cartas do monte',
   'menu.reset': 'Reiniciar jogo',
   'menu.felt': 'Cor da mesa',
+  'menu.opponents': 'Adversários',
   'menu.soundOn': 'Som: ligado',
   'menu.soundOff': 'Som: desligado',
   'menu.help': 'Como jogar',
@@ -83,6 +84,10 @@ const ptBR = {
 
   'felt.green': 'Verde',
   'felt.wine': 'Vinho',
+  'opponents.badges': 'Etiquetas',
+  'opponents.fans': 'Leques de cartas',
+  'reach.title': 'Entregar para',
+  'reach.titleTo': 'Entregar para {name}',
 
   'deck.shuffle': 'Embaralhar',
   'deck.empty': 'Vazio',
@@ -135,7 +140,9 @@ const ptBR = {
   'help.group': 'Solte uma carta em cima de outra para formar um grupo. Toque na etiqueta do grupo para alternar entre pilha e leque, ou arraste a etiqueta para mover tudo.',
   'help.reorder': 'Arraste as cartas da mão para reordenar, ou use os botões de ordenar.',
   'help.face': 'O seletor Aberta/Fechada define como as cartas chegam à mesa.',
-  'help.give': 'Solte uma carta sobre o nome de um jogador para entregar a ele.',
+  'help.pileOrder': 'Com o grupo em leque, arraste uma carta para outra posição para reordenar, como na sua mão.',
+  'help.give': 'Leve uma carta até o topo da tela: a barra de jogadores cresce, e soltar sobre um jogador entrega a carta a ele.',
+  'help.opponents': 'No menu, em Adversários, escolha ver os outros jogadores como leques de cartas ou como etiquetas.',
   'help.return': 'Solte uma carta sobre o monte para devolver.',
 
   'notFound.title': 'Página não encontrada',
@@ -208,6 +215,7 @@ const en: Record<MessageKey, string> = {
   'menu.removeCards': 'Remove cards from the deck',
   'menu.reset': 'Restart game',
   'menu.felt': 'Table color',
+  'menu.opponents': 'Opponents',
   'menu.soundOn': 'Sound: on',
   'menu.soundOff': 'Sound: off',
   'menu.help': 'How to play',
@@ -224,6 +232,10 @@ const en: Record<MessageKey, string> = {
 
   'felt.green': 'Green',
   'felt.wine': 'Wine',
+  'opponents.badges': 'Tags',
+  'opponents.fans': 'Card fans',
+  'reach.title': 'Give to',
+  'reach.titleTo': 'Give to {name}',
 
   'deck.shuffle': 'Shuffle',
   'deck.empty': 'Empty',
@@ -276,7 +288,9 @@ const en: Record<MessageKey, string> = {
   'help.group': 'Drop a card on top of another to form a group. Tap the group tag to switch between stack and fan, or drag the tag to move everything.',
   'help.reorder': 'Drag the cards in your hand to reorder them, or use the sort buttons.',
   'help.face': 'The Face up/Face down switch sets how cards land on the table.',
-  'help.give': "Drop a card on a player's name to hand it to them.",
+  'help.pileOrder': 'With the group spread as a fan, drag a card to another position to reorder it, like in your hand.',
+  'help.give': 'Bring a card to the top of the screen: the player bar grows, and dropping on a player hands the card to them.',
+  'help.opponents': 'In the menu, under Opponents, choose to see the other players as card fans or as tags.',
   'help.return': 'Drop a card on the deck to return it.',
 
   'notFound.title': 'Page not found',

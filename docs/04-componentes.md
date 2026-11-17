@@ -23,11 +23,13 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | Componente | Responsabilidade |
 |---|---|
 | [`GameStage`](../src/components/game/GameStage.tsx) | Tela do jogo. Monta barra, mesa e mão; liga `useCardDrag`, `useViewEffects`, `useCardTransitions`; provê `StageContext` (registro de sprites e API de efeitos) |
-| [`TopBar`](../src/components/game/TopBar.tsx) | Código da sala (toque copia o link de convite), indicador de reconexão, outros jogadores e menu |
-| [`PlayerBadge`](../src/components/game/PlayerBadge.tsx) | Etiqueta de outro jogador: cor do assento, nome, mini versos, contagem. Alvo de soltura `player:ID`. Mostra botão de remover quando desconectado |
-| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover cartas, reiniciar, cor da mesa, som, idioma, ajuda, sair |
+| [`TopBar`](../src/components/game/TopBar.tsx) | Código da sala (toque copia o link de convite), indicador de reconexão, outros jogadores (etiquetas ou leques, conforme `useOpponentsView`) e menu |
+| [`PlayerBadge`](../src/components/game/PlayerBadge.tsx) | Visão compacta (alternativa) de outro jogador: cor do assento, nome, mini versos, contagem. Alvo de soltura `player:ID`. Mostra botão de remover quando desconectado e recebe `onRemove`. Exporta `OpponentProps`, comum às duas visões de adversário |
+| [`OpponentFan`](../src/components/game/OpponentFan.tsx) | Visão padrão do adversário: a mão dele em mini leque de versos (até 12 visíveis) com o nome embaixo, sem caixa em volta. Mesmas props e mesmo papel da `PlayerBadge` |
+| [`PlayerReachBar`](../src/components/game/PlayerReachBar.tsx) | Barra de jogadores ampliada que aparece durante o arrasto perto do topo. Usa `PlayerBadge` ou `OpponentFan` (conforme a visão escolhida) com `anchor={false}`, para as cartas entregues voarem até a barra superior, e não até ela |
+| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover cartas, reiniciar, cor da mesa, adversários, som, idioma, ajuda, sair |
 | [`HandTray`](../src/components/game/HandTray.tsx) | Bandeja inferior: nome, ordenar por valor ou naipe, seletor Aberta/Fechada, contador e embaralhar do monte. Expõe as âncoras `handRef` e `deckRef` |
-| [`CardLayer`](../src/components/game/CardLayer.tsx) | Camada única com o monte, todas as cartas visíveis (em `AnimatePresence`) e as etiquetas de grupo |
+| [`CardLayer`](../src/components/game/CardLayer.tsx) | Camada única com o monte, todas as cartas visíveis (em `AnimatePresence`) e as etiquetas de grupo. Aceita `children` para sobreposições que ficam entre as cartas da mesa e a carta segurada (a `PlayerReachBar`) |
 | [`CardSprite`](../src/components/game/CardSprite.tsx) | Uma carta: persegue o alvo com mola, vira, inclina no hover, mostra quem a está arrastando, sai voando para o destino |
 | [`DeckStack`](../src/components/game/DeckStack.tsx) | O monte: camadas de volume, animação de embaralhar e a carta "fantasma" que se arrasta |
 | [`PileChip`](../src/components/game/PileChip.tsx) | Etiqueta de grupo: contagem, alça para mover o grupo, toque alterna pilha e leque |
@@ -41,7 +43,7 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | Hook | Devolve | Uso |
 |---|---|---|
 | [`useRoom`](../src/hooks/useRoom.ts) | `phase`, `status`, `view`, `create`, `join`, `leave`, `send`, `sendLive`, `onLive` | Único ponto que fala com o transporte. Retoma a sala depois de recarregar |
-| [`useCardDrag`](../src/hooks/useCardDrag.ts) | `held`, `handGap`, `hover`, `begin`, `world`, `spawnHint` | Arrasto e toque por Pointer Events. Resolve o alvo e envia a ação |
+| [`useCardDrag`](../src/hooks/useCardDrag.ts) | `held`, `handGap`, `pileGap`, `hover`, `reachPlayers`, `begin`, `world`, `spawnHint` | Arrasto e toque por Pointer Events. Resolve o alvo (inclusive a vaga no leque), decide quando ampliar a barra de jogadores e envia a ação |
 | [`useStageMetrics`](../src/hooks/useStageMetrics.ts) | `size`, `metrics` | Mede o palco e as âncoras; calcula o tamanho da carta |
 | [`useSpriteMotion`](../src/hooks/useSpriteMotion.ts) | `x`, `y`, `rotate`, `scale` | Valores de movimento de um sprite, registrados para o arrasto |
 | [`useLiveDrags`](../src/hooks/useLiveDrags.ts) | mapa de arrastos remotos | Recebe a posição do que os outros estão arrastando |
@@ -54,13 +56,15 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | Módulo | Conteúdo |
 |---|---|
 | [`game/layout.ts`](../src/game/layout.ts) | `cardSizeFor`, `tableToStage`, `stageToTable`, `pileGeometry`, `handSlots`, `nearestSlot`, `hashOf` |
-| [`game/targets.ts`](../src/game/targets.ts) | `computeTargets`: alvo (x, y, rotação, escala, camada) de cada carta |
+| [`game/targets.ts`](../src/game/targets.ts) | `computeTargets`: alvo (x, y, rotação, escala, camada) de cada carta, com as vagas abertas na mão (`handGap`) e no leque (`pileGap`) |
 | [`game/stage.ts`](../src/game/stage.ts) | `StageContext`, `useStage`, `SpriteRegistry`, `FxApi`, `seatColor`, `DECK_KEY`, `pileKey`, `prefersReducedMotion` |
 | [`lib/realtime/`](../src/lib/realtime/) | `connectRoom`, `transportKind`, tipos da conexão, sessão e link de convite |
 | [`lib/i18n.ts`](../src/lib/i18n.ts) | `t`, `useT`, `setLocale`, `getLocale` |
 | [`lib/sfx.ts`](../src/lib/sfx.ts) | `sfx.pick`, `drop`, `deal`, `flip`, `stack`, `shuffle`, `fanfare`, `join`, `leave`, `error`, `tap`; `useMuted`, `setMuted` |
 | [`lib/tokens.ts`](../src/lib/tokens.ts) | `tokenColor` |
+| [`lib/preference.ts`](../src/lib/preference.ts) | `createPreference(chave, valores, padrão, efeito?)`: preferência do jogador no navegador, com hook `useValue`. Base de `felt.ts` e `opponentsView.ts` |
 | [`lib/felt.ts`](../src/lib/felt.ts) | `FELTS`, `useFelt`, `setFelt`, `getFelt`: cor da mesa escolhida pelo jogador |
+| [`lib/opponentsView.ts`](../src/lib/opponentsView.ts) | `OPPONENT_VIEWS`, `useOpponentsView`, `setOpponentsView`: adversários como leques (padrão) ou etiquetas |
 | [`lib/feltTexture.ts`](../src/lib/feltTexture.ts) | `feltTextureUrl`, `FELT_TILE`: textura de tecido gerada uma vez e reaproveitada |
 | [`lib/firebase.ts`](../src/lib/firebase.ts) | Instância do Realtime Database |
 

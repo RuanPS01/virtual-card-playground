@@ -51,6 +51,12 @@ const play = (event: ActionEvent, { view, metrics, targets }: World, fx: FxApi):
       break;
     case 'toPile':
     case 'stackOn':
+      if (event.from?.zone === 'pile' && event.to?.zone === 'pile' && event.from.pileId === event.to.pileId) {
+        // Reordenação dentro do leque: mesmo retorno da reordenação da mão.
+        sfx.deal();
+        if (event.cardId) fx.pop(event.cardId);
+        break;
+      }
       sfx.stack();
       if (card && event.cardId) {
         if (event.type === 'stackOn') fx.burst(card.x, card.y, 'spark');

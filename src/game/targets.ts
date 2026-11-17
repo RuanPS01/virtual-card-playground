@@ -30,6 +30,11 @@ export interface LiveDrag {
   at: number;
 }
 
+export interface PileGap {
+  pileId: string;
+  index: number;
+}
+
 export interface TargetInput {
   view: RoomView;
   metrics: StageMetrics;
@@ -37,6 +42,8 @@ export interface TargetInput {
   held: ReadonlySet<string>;
   /** Índice da vaga aberta na mão enquanto uma carta paira sobre ela. */
   handGap: number | null;
+  /** Vaga aberta em um grupo em leque enquanto uma carta paira sobre ele. */
+  pileGap: PileGap | null;
   /** Arrastos remotos, por jogador. */
   live: ReadonlyMap<string, LiveDrag>;
 }
@@ -58,7 +65,7 @@ const Z_REMOTE = 800_000;
 
 const byOrder = (a: CardView, b: CardView): number => a.order - b.order || (a.id < b.id ? -1 : 1);
 
-export const computeTargets = ({ view, metrics: m, held, handGap, live }: TargetInput): StageTargets => {
+export const computeTargets = ({ view, metrics: m, held, handGap, pileGap, live }: TargetInput): StageTargets => {
   const cards = new Map<string, SpriteTarget>();
   const piles = new Map<string, PileGeometry>();
   const holders = new Map<string, string>();
@@ -100,18 +107,33 @@ export const computeTargets = ({ view, metrics: m, held, handGap, live }: Target
   for (const pile of view.piles) {
     const members = view.cards.filter((card) => card.zone === 'pile' && card.pileId === pile.id).sort(byOrder);
     const drag = livePiles.get(pile.id);
-    const geometry = pileGeometry(m, pile, members.length, drag ? tableToStage(m, drag.x, drag.y) : undefined);
+    const center = drag ? tableToStage(m, drag.x, drag.y) : undefined;
+    // Igual à mão: a carta que o jogador tirou do leque deixa as outras se
+    // juntarem, e a vaga aberta mostra onde ela vai entrar. Quando o grupo
+    // inteiro está sendo movido, nada se reorganiza.
+    const wholePile = held.has(`pile:${pile.id}`);
+    const free = wholePile ? members : members.filter((card) => !held.has(card.id));
+    const gap = !wholePile && pile.mode === 'fan' && pileGap?.pileId === pile.id ? Math.min(pileGap.index, free.length) : null;
+    const geometry = pileGeometry(m, pile, Math.max(1, free.length + (gap === null ? 0 : 1)), center);
     piles.set(pile.id, geometry);
+    const natural = free.length === members.length ? geometry : pileGeometry(m, pile, members.length, center);
     const base = drag ? Z_REMOTE : (layerOf.get(`pile:${pile.id}`) ?? 10);
-    members.forEach((card, index) => {
+
+    const place = (card: CardView, slot: number, from: PileGeometry) => {
       const cardDrag = liveCards.get(card.id);
-      const point = cardDrag ? tableToStage(m, cardDrag.x, cardDrag.y) : geometry.cardAt(index);
+      const point = cardDrag ? tableToStage(m, cardDrag.x, cardDrag.y) : from.cardAt(slot);
       cards.set(card.id, {
         ...point,
         rot: cardDrag || pile.mode === 'fan' ? 0 : (hashOf(card.id) % 5) - 2,
         scale: cardDrag ? 1.08 : 1,
-        z: cardDrag ? Z_REMOTE : base + index,
+        z: cardDrag ? Z_REMOTE : base + slot,
       });
+    };
+    free.forEach((card, index) => place(card, gap !== null && index >= gap ? index + 1 : index, geometry));
+    // Carta segurada: o alvo só vale na hora de soltar. Vai para a vaga, se
+    // houver, senão para o lugar de onde saiu.
+    members.forEach((card, index) => {
+      if (!cards.has(card.id)) place(card, gap ?? index, gap !== null ? geometry : natural);
     });
   }
 

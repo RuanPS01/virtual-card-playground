@@ -71,7 +71,8 @@ export type CardSource = { from: 'deck' } | { from: 'card'; cardId: string };
 export type Action =
   | { type: 'toHand'; src: CardSource; playerId?: string; beforeId?: string | null }
   | { type: 'toTable'; src: CardSource; x: number; y: number; faceUp?: boolean }
-  | { type: 'toPile'; src: CardSource; pileId: string; faceUp?: boolean }
+  /** beforeId posiciona a carta no grupo, como na mão. Sem ele, vai para o topo. */
+  | { type: 'toPile'; src: CardSource; pileId: string; faceUp?: boolean; beforeId?: string | null }
   | { type: 'stackOn'; src: CardSource; targetId: string; mode?: PileMode; faceUp?: boolean }
   | { type: 'toDeck'; cardId: string }
   | { type: 'flip'; cardId: string }

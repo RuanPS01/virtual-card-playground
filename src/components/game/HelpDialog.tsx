@@ -9,9 +9,11 @@ const ITEMS: MessageKey[] = [
   'help.drag',
   'help.flip',
   'help.group',
+  'help.pileOrder',
   'help.reorder',
   'help.face',
   'help.give',
+  'help.opponents',
   'help.return',
 ];
 

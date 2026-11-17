@@ -240,13 +240,18 @@ const run = (state: RoomState, actorId: string, action: Action, rng: Rng): Event
 
       const face = landingFace(from, card, action.faceUp);
       const samePile = from.zone === 'pile' && from.pileId === pileId;
-      const top = cardsIn(state, 'pile', pileId).filter((c) => c.id !== card.id).length;
+      const members = cardsIn(state, 'pile', pileId).filter((c) => c.id !== card.id);
+      // Mesma regra da mão: "antes da carta X", e não "na posição N". Se X
+      // saiu do grupo enquanto a mensagem viajava, a carta vai para o topo.
+      const beforeId = action.type === 'toPile' ? action.beforeId : null;
+      let index = typeof beforeId === 'string' ? members.findIndex((c) => c.id === beforeId) : -1;
+      if (index < 0) index = members.length;
+      members.splice(index, 0, card);
       card.faceUp = face;
       card.zone = 'pile';
       card.owner = pileId;
-      card.order = top;
       state.piles[pileId].z = ++state.z;
-      renumber(cardsIn(state, 'pile', pileId));
+      renumber(members);
       if (!samePile) settleOrigin(state, from);
       return { cardId: card.id, from, to: { zone: 'pile', pileId } };
     }

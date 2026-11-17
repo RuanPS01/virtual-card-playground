@@ -121,7 +121,38 @@ mesa dos outros jogadores.
 Não há linhas de varredura de monitor por cima da mesa: elas riscavam o feltro
 em faixas horizontais e tiravam a sensação de tecido.
 
-## 3.1.5 Tipografia
+## 3.1.5 Adversários e barra ampliada
+
+**Leques de cartas** (padrão): a mão de cada adversário em mini
+leque de versos, lado a lado no topo, com o nome numa pequena placa
+embaixo. Sem caixa em volta: as cartas ficam direto sobre o feltro, como na
+mesa de verdade. Até 12 versos aparecem; acima disso o leque fica mais
+fechado e a contagem mostra o total. No celular deitado os versos encolhem.
+
+**Etiquetas** (alternativa, no menu): caixas compactas na barra superior com
+cor do assento, nome, mini versos e contagem. Ocupam menos altura.
+
+**Barra ampliada**: aparece por cima do topo quando uma carta arrastada chega
+perto dele. Mesmo desenho da visão escolhida, só que bem maior (etiquetas de
+60px de altura, 52px em tela estreita; versos de 34x48px). O alvo sob a carta
+ganha fundo de destaque, e a própria carta encolhe para 55% e fica
+translúcida (`.pc-sprite[data-over-player]`).
+
+| Barra ampliada no desktop (leques) | Barra ampliada no celular (etiquetas) |
+|---|---|
+| ![Barra ampliada no desktop](assets/barra-ampliada-desktop.webp) | ![Barra ampliada no celular](assets/barra-ampliada-celular.webp) |
+
+## 3.1.6 Ícone (favicon)
+
+Desenho próprio em [`public/favicon.svg`](../public/favicon.svg): feltro
+verde com cantos arredondados, um verso azul e uma carta com copas, nas cores
+dos tokens (escritas no arquivo, porque uma imagem não lê CSS). Derivados:
+`favicon.ico` (16, 32 e 48px) e `apple-touch-icon.png` (180px, sem
+transparência e sem cantos, que o iOS arredonda sozinho). Os três estão
+declarados no `index.html`; sem isso o navegador usaria o ícone da raiz do
+domínio. Ao mudar o SVG, gere os derivados de novo a partir dele.
+
+## 3.1.7 Tipografia
 
 | Item | Valor |
 |---|---|
@@ -139,7 +170,7 @@ Dentro da carta, o tamanho vem do sprite: `font-size` é 20% da largura da
 carta e todas as medidas internas são em `em`. A carta escala inteira, do
 celular ao desktop, sem regras próprias.
 
-## 3.1.6 Cartas
+## 3.1.8 Cartas
 
 - Proporção 5:7, cantos de `0.42em`.
 - Índice (valor e naipe) nos dois cantos, o de baixo girado 180 graus.
@@ -150,7 +181,7 @@ celular ao desktop, sem regras próprias.
 - Sombra: elemento próprio (`.pc-shadow`), deslocado para longe do centro da
   tela, como se a luz viesse do centro. Cresce quando a carta é levantada.
 
-## 3.1.7 Animações e efeitos
+## 3.1.9 Animações e efeitos
 
 | Efeito | Onde | Como |
 |---|---|---|
@@ -162,7 +193,9 @@ celular ao desktop, sem regras próprias.
 | Inclinação no arrasto | Carta segurada | Gira na direção do movimento e volta ao eixo |
 | Voo | Toda mudança de lugar | Mola (`stiffness 360`, `damping 30`) |
 | Virada | Tocar na carta | `rotateY` com curva que passa do ponto |
-| Pulo | Carta que pousou, foi virada ou chegou à mão | Escala 1.2, 0.93, 1 |
+| Pulo | Carta que pousou, foi virada, chegou à mão ou mudou de lugar no leque | Escala 1.2, 0.93, 1 |
+| Vaga aberta | Mão e grupo em leque, durante o arrasto | As cartas se afastam onde a carta vai entrar |
+| Barra ampliada | Topo, durante o arrasto | Mola de cima para baixo; some ao afastar a carta |
 | Poeira | Carta pousada na mesa | Partículas creme para os lados |
 | Faíscas | Grupo criado | Partículas dourado e creme em círculo |
 | Confete | Baralho adicionado, jogo reiniciado | 40 partículas de quatro cores |

@@ -28,19 +28,42 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Arrastar dentro da mão | Reordena; uma vaga se abre onde a carta vai entrar |
 | Tocar em carta da mesa | Vira |
 | Soltar carta sobre outra (centros próximos) | Cria um grupo em pilha |
-| Soltar carta sobre um grupo | Entra no grupo |
+| Soltar carta sobre um grupo em pilha | Entra no topo do grupo |
+| Soltar carta sobre um grupo em leque | Entra na posição onde for solta; uma vaga se abre no leque para mostrar onde |
+| Arrastar uma carta dentro do leque | Reordena o grupo, como na mão (qualquer jogador pode, o grupo está na mesa) |
 | Arrastar a etiqueta do grupo | Move o grupo inteiro |
 | Tocar na etiqueta do grupo | Alterna pilha e leque |
-| Arrastar carta de um grupo | Tira a carta do grupo |
-| Soltar sobre o nome de um jogador | A carta vai para a mão dele |
+| Arrastar carta de um grupo para fora dele | Tira a carta do grupo; as outras se juntam |
+| Levar a carta até o topo da tela | A barra de jogadores aparece ampliada, com alvos grandes |
+| Soltar sobre um jogador | A carta vai para a mão dele |
 | Soltar sobre o monte | A carta volta para o topo do monte |
 | Botões Valor e Naipe | Ordenam a sua mão |
 | Seletor Aberta/Fechada | Define como as cartas da mão e do monte chegam à mesa |
 
 Menu: adicionar baralho, remover cartas do monte, reiniciar (tudo volta ao
-monte), cor da mesa (feltro verde ou vinho), som, idioma, ajuda e sair. A cor
-da mesa também pode ser escolhida na tela de entrada e vale só para quem
-escolheu.
+monte), cor da mesa (feltro verde ou vinho), adversários (leques de cartas,
+o padrão, ou etiquetas), som, idioma, ajuda e sair. A cor da mesa também pode ser escolhida
+na tela de entrada. As duas escolhas de visual valem só para quem escolheu.
+
+### Entregar carta pela barra ampliada
+
+Quando uma carta arrastada chega perto do topo da tela, a barra de jogadores
+aparece por cima, bem maior (o título diz "Entregar para"). Ao passar sobre um
+jogador, o alvo se destaca, o título passa a dizer "Entregar para Fulano" e a
+carta encolhe e fica translúcida para não esconder o nome. Ao afastar a carta
+do topo, a barra some e a carta pode ser solta na mesa normalmente. A barra
+não empurra o layout: as cartas da mesa não se mexem enquanto ela aparece.
+
+### Reordenar um grupo em leque
+
+Com o grupo aberto em leque, arrastar uma carta dele faz as outras se
+juntarem, e uma vaga se abre na posição mais próxima do centro da carta. Ao
+soltar, a carta entra ali. Soltar de volta na mesma vaga não envia nada. O
+leque reconhece a carta pela posição do centro dela, com folga, e não só pelo
+dedo: quem segura a carta pela borda no celular continua acertando o leque.
+Em pilha não há posição visível, então a carta sempre entra no topo.
+
+![Vaga aberta no leque durante o arrasto](assets/leque-reordenando.webp)
 
 ## 7.4 Ciclo de uma ação
 

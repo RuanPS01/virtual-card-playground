@@ -70,7 +70,18 @@ JavaScript: para mudar o layout, mude o CSS e as medidas acompanham.
 cartas encolhe conforme a mão cresce, com teto de 80% da largura da carta.
 Vinte cartas cabem em 360px com o índice de cada uma visível.
 
-## 8.6 Toque
+## 8.6 Adversários e barra ampliada
+
+- Na visão em leques, a linha de adversários fica mais alta. Como ela faz parte
+  do layout, a área da mesa encolhe junto e nenhuma carta fica embaixo dela.
+  No celular em pé ela ocupa a segunda linha da barra; no deitado os versos
+  ficam menores.
+- A barra ampliada é uma sobreposição (`position: absolute` dentro da camada
+  de cartas): aparecer não muda a medida da mesa, então nenhuma carta se move.
+  Ela quebra em mais de uma linha quando há muitos adversários, e os alvos
+  ficam com pelo menos 52px de altura no celular, um tamanho bom para o dedo.
+
+## 8.7 Toque
 
 - `touch-action: none` no palco e nas cartas: o navegador não rola nem dá zoom
   durante o arrasto. A lista de jogadores é a exceção (`pan-x`), para rolar
@@ -82,7 +93,7 @@ Vinte cartas cabem em 360px com o índice de cada uma visível.
 - `viewport-fit=cover` com `env(safe-area-inset-*)`: nada interativo fica
   embaixo do entalhe ou da barra de gestos.
 
-## 8.7 Como testar
+## 8.8 Como testar
 
 Teste pelo menos 360x640, 640x360, 768x1024 e 1440x900. Coloque cartas nos
 quatro cantos da mesa em um tamanho e confira nos outros; gire a tela com

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { animate } from 'framer-motion';
+import { animate, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import type { Rank, Suit } from '@shared/cards';
 import type { Action, ErrorCode, PlayerView, RoomView } from '@shared/types';
@@ -14,12 +14,14 @@ import { useViewEffects } from '@/hooks/useViewEffects';
 import { prefersReducedMotion, StageContext, type FxApi, type SpriteRegistry } from '@/game/stage';
 import { computeTargets, type StageTargets } from '@/game/targets';
 import { t as translate, useT, type MessageKey } from '@/lib/i18n';
+import { useOpponentsView } from '@/lib/opponentsView';
 import { sfx } from '@/lib/sfx';
 import CardLayer from './CardLayer';
 import FxLayer, { type FxLayerHandle } from './effects/FxLayer';
 import FeltBackground from './effects/FeltBackground';
 import HandTray from './HandTray';
 import HelpDialog from './HelpDialog';
+import PlayerReachBar from './PlayerReachBar';
 import TopBar from './TopBar';
 
 // Tela do jogo. Monta as três faixas (barra, mesa, mão), a camada de cartas
@@ -94,8 +96,8 @@ const GameStage = ({ room, view }: GameStageProps) => {
   const drag = useCardDrag({ stageRef, registry, fx, send: room.send, sendLive: room.sendLive, onError });
 
   const targets = useMemo<StageTargets | null>(
-    () => (metrics ? computeTargets({ view, metrics, held: drag.held, handGap: drag.handGap, live }) : null),
-    [view, metrics, drag.held, drag.handGap, live],
+    () => (metrics ? computeTargets({ view, metrics, held: drag.held, handGap: drag.handGap, pileGap: drag.pileGap, live }) : null),
+    [view, metrics, drag.held, drag.handGap, drag.pileGap, live],
   );
 
   // Os hooks de arrasto e de efeitos leem o "mundo" por ref: precisam do valor
@@ -117,6 +119,8 @@ const GameStage = ({ room, view }: GameStageProps) => {
   );
 
   const me = view.players.find((player) => player.id === view.me);
+  const others = useMemo(() => view.players.filter((player) => player.id !== view.me), [view.players, view.me]);
+  const opponentsView = useOpponentsView();
   const shuffleTick = view.last && SHUFFLE_EVENTS.has(view.last.type) ? view.last.rev : 0;
 
   // O texto fica guardado depois de fechar: o diálogo ainda está na tela
@@ -202,7 +206,11 @@ const GameStage = ({ room, view }: GameStageProps) => {
               exitLookup={exitLookup}
               drag={drag}
               shuffleTick={shuffleTick}
-            />
+            >
+              <AnimatePresence>
+                {drag.reachPlayers && <PlayerReachBar players={others} view={opponentsView} hover={drag.hover} />}
+              </AnimatePresence>
+            </CardLayer>
           )}
 
           <FxLayer ref={fxLayer} />
