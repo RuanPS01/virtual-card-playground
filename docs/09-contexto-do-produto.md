@@ -27,6 +27,11 @@ celular, em pé e deitado, é tão importante quanto no computador.
 - Arrasto visível para todos em tempo real.
 - Volta automática para a sala depois de recarregar ou perder a conexão.
 - Mesa com feltro verde ou vinho, como as mesas de jogo clássicas.
+- Grupos em leque reordenáveis à mão, como a própria mão do jogador.
+- Adversários vistos como leques de cartas (padrão) ou como etiquetas, e uma barra
+  ampliada para entregar cartas com precisão no celular.
+- Remover um baralho inteiro do monte e reiniciar com um único baralho original.
+- App instalável (PWA) no celular e no computador.
 - Interface em português do Brasil e em inglês.
 - Animações, efeitos e sons em todas as ações.
 

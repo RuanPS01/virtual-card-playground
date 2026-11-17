@@ -240,13 +240,18 @@ const run = (state: RoomState, actorId: string, action: Action, rng: Rng): Event
 
       const face = landingFace(from, card, action.faceUp);
       const samePile = from.zone === 'pile' && from.pileId === pileId;
-      const top = cardsIn(state, 'pile', pileId).filter((c) => c.id !== card.id).length;
+      const members = cardsIn(state, 'pile', pileId).filter((c) => c.id !== card.id);
+      // Mesma regra da mão: "antes da carta X", e não "na posição N". Se X
+      // saiu do grupo enquanto a mensagem viajava, a carta vai para o topo.
+      const beforeId = action.type === 'toPile' ? action.beforeId : null;
+      let index = typeof beforeId === 'string' ? members.findIndex((c) => c.id === beforeId) : -1;
+      if (index < 0) index = members.length;
+      members.splice(index, 0, card);
       card.faceUp = face;
       card.zone = 'pile';
       card.owner = pileId;
-      card.order = top;
       state.piles[pileId].z = ++state.z;
-      renumber(cardsIn(state, 'pile', pileId));
+      renumber(members);
       if (!samePile) settleOrigin(state, from);
       return { cardId: card.id, from, to: { zone: 'pile', pileId } };
     }
@@ -312,6 +317,47 @@ const run = (state: RoomState, actorId: string, action: Action, rng: Rng): Event
         }
       }
       renumber(cardsIn(state, 'deck'));
+      return { count };
+    }
+
+    case 'removeDeck': {
+      // Quantas cópias de cada carta existem na sala, em qualquer lugar.
+      const copies = new Map<string, number>();
+      for (const card of Object.values(state.cards)) {
+        const key = `${card.rank}:${card.suit}`;
+        copies.set(key, (copies.get(key) ?? 0) + 1);
+      }
+      const deck = cardsIn(state, 'deck');
+      let count = 0;
+      let skipped = 0;
+      for (const suit of SUITS) {
+        for (const rank of RANKS) {
+          // A última cópia nunca sai: a mesa mantém pelo menos um baralho.
+          if ((copies.get(`${rank}:${suit}`) ?? 0) < 2) continue;
+          // Só sai carta do monte. Tirar da mão de alguém ou da mesa no meio
+          // do jogo seria pior do que deixar a cópia extra onde está.
+          const victim = deck.find((card) => card.suit === suit && card.rank === rank);
+          if (!victim) {
+            skipped++;
+            continue;
+          }
+          delete state.cards[victim.id];
+          count++;
+        }
+      }
+      if (count === 0) return skipped > 0 ? 'deck_incomplete' : 'single_deck';
+      renumber(cardsIn(state, 'deck'));
+      return { count, skipped };
+    }
+
+    case 'resetToOneDeck': {
+      // Começa do zero, e não do que existe: cartas removidas voltam,
+      // baralhos extras saem e ninguém herda id de carta antiga.
+      state.cards = {};
+      state.piles = {};
+      state.z = 0;
+      const count = addDeckCards(state, rng);
+      shuffleDeck(state, rng);
       return { count };
     }
 

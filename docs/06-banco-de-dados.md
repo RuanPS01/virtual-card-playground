@@ -55,6 +55,10 @@ testes verificam isso.
 - Posições `x`, `y` sempre entre 0 e 1 (o motor limita).
 - Quem sai devolve a mão ao **fundo** do monte.
 - No máximo 8 jogadores e 416 cartas (8 baralhos) por sala.
+- `removeDeck` nunca tira a última cópia de uma carta (a sala mantém pelo menos
+  um baralho) e só tira cartas do monte, nunca de mãos ou da mesa.
+- `resetToOneDeck` recria as 52 cartas do zero: cartas removidas voltam,
+  baralhos extras saem e nenhum id antigo é reaproveitado.
 
 ## 6.2 Visão por jogador
 

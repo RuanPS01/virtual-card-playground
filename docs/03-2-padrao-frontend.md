@@ -17,9 +17,9 @@
 | Tipo de estado | Onde fica |
 |---|---|
 | Estado do jogo (cartas, grupos, jogadores) | Só na sala. O cliente recebe `RoomView` por [`useRoom`](../src/hooks/useRoom.ts) e nunca altera |
-| Gesto em andamento | [`useCardDrag`](../src/hooks/useCardDrag.ts) (`held`, `handGap`, `hover`) |
+| Gesto em andamento | [`useCardDrag`](../src/hooks/useCardDrag.ts) (`held`, `handGap`, `pileGap`, `hover`, `reachPlayers`) |
 | Posição animada de cada carta | Valores de movimento do framer-motion, registrados no `SpriteRegistry` |
-| Preferência do jogador (som, idioma, nome) | `localStorage`, sempre dentro de `try/catch` |
+| Preferência do jogador (som, idioma, nome, cor da mesa, visão dos adversários) | `localStorage`, sempre dentro de `try/catch`. Preferência nova: use [`createPreference`](../src/lib/preference.ts) |
 | Assento atual (para retomar depois de recarregar) | `sessionStorage` (um por aba, de propósito) |
 
 Para mudar o jogo: monte uma `Action` e chame `room.send(action)`. Se o
@@ -60,7 +60,7 @@ Qualquer elemento pode receber cartas: basta ter `data-drop`.
 | `deck` | Carta volta para o topo do monte |
 | `player:ID` | Carta vai para a mão daquele jogador |
 | `card:ID` | Forma um grupo com aquela carta (se os centros estiverem próximos) |
-| `pile:ID` | Carta entra naquele grupo |
+| `pile:ID` | Carta entra naquele grupo: no topo, se em pilha; na vaga mais próxima, se em leque (também reordena dentro do próprio leque). O leque aceita a carta também pelo centro dela, com folga, mesmo que o ponteiro esteja fora |
 
 O controlador usa `document.elementsFromPoint`, então sobreposição, rotação e
 z-index valem exatamente como a tela mostra.

@@ -54,7 +54,7 @@ export const useCardTransitions = (
     exits.current = new Map();
     for (const id of before) {
       if (now.has(id) || !last) continue;
-      if (last.type === 'reset' || (last.cardId === id && last.to?.zone === 'deck')) {
+      if (last.type === 'reset' || last.type === 'resetToOneDeck' || (last.cardId === id && last.to?.zone === 'deck')) {
         exits.current.set(id, metrics.deck);
       } else if (last.cardId === id && last.to?.zone === 'hand' && last.to.playerId !== view.me) {
         const target = badgeCenter(stageRef.current, last.to.playerId);

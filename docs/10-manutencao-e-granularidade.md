@@ -22,6 +22,7 @@ coisas à interface e os componentes só desenham.
 | Um cálculo de posição, tamanho ou camada | `src/game/layout.ts` ou `src/game/targets.ts` (funções puras) |
 | Um efeito disparado por ação | `src/hooks/useViewEffects.ts` |
 | Um som | `src/lib/sfx.ts` |
+| Uma preferência do jogador (algo que só muda a tela de quem escolhe) | `createPreference` em `src/lib/preference.ts`, num módulo próprio como `felt.ts` |
 | Uma parte visual da mesa | `src/components/game/` |
 | Um texto | `src/lib/i18n.ts`, nos dois dicionários |
 | Uma mensagem nova entre cliente e servidor | `shared/protocol.ts`, nos dois lados |

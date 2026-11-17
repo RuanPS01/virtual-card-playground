@@ -1,4 +1,4 @@
-import { CircleHelp, Languages, LogOut, Menu, PackageMinus, PackagePlus, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { CircleHelp, Download, Languages, ListFilter, ListRestart, LogOut, Menu, PackageMinus, PackagePlus, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FELTS, setFelt, useFelt, type Felt } from '@/lib/felt';
 import { getLocale, setLocale, useT } from '@/lib/i18n';
+import { OPPONENT_VIEWS, setOpponentsView, useOpponentsView, type OpponentsView } from '@/lib/opponentsView';
 import { setMuted, useMuted } from '@/lib/sfx';
 
 // Ações da mesa que não são de uso constante ficam em um menu só. No celular
@@ -18,17 +19,24 @@ import { setMuted, useMuted } from '@/lib/sfx';
 
 export interface GameMenuProps {
   onAddDeck(): void;
+  onRemoveDeck(): void;
+  /** Falso quando a sala tem um baralho ou menos: não há o que remover. */
+  canRemoveDeck: boolean;
   onRemoveCards(): void;
+  onResetOriginal(): void;
   onReset(): void;
   onHelp(): void;
+  /** Ausente quando o app já está instalado e aberto como app. */
+  onInstall?(): void;
   onLeave(): void;
 }
 
-const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMenuProps) => {
+const GameMenu = ({ onAddDeck, onRemoveDeck, canRemoveDeck, onRemoveCards, onReset, onResetOriginal, onHelp, onInstall, onLeave }: GameMenuProps) => {
   const t = useT();
   const muted = useMuted();
   const locale = getLocale();
   const felt = useFelt();
+  const opponents = useOpponentsView();
 
   return (
     <DropdownMenu>
@@ -38,18 +46,27 @@ const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMe
           <span className="hidden sm:inline">{t('hud.menu')}</span>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-60">
+      {/* Rola por dentro quando não cabe na altura (celular deitado). */}
+      <DropdownMenuContent align="end" className="max-h-[var(--radix-dropdown-menu-content-available-height)] w-64 overflow-y-auto">
         <DropdownMenuItem onSelect={onAddDeck}>
           <PackagePlus className="size-4" />
           {t('menu.addDeck')}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onRemoveCards}>
+        <DropdownMenuItem onSelect={onRemoveDeck} disabled={!canRemoveDeck}>
           <PackageMinus className="size-4" />
+          {t('menu.removeDeck')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onRemoveCards}>
+          <ListFilter className="size-4" />
           {t('menu.removeCards')}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onReset}>
           <RotateCcw className="size-4" />
           {t('menu.reset')}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onResetOriginal}>
+          <ListRestart className="size-4" />
+          {t('menu.resetOriginal')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-muted-foreground">{t('menu.felt')}</DropdownMenuLabel>
@@ -64,6 +81,14 @@ const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMe
             >
               <span className="felt-swatch" data-felt={option} />
               {t(`felt.${option}`)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+        <DropdownMenuLabel className="text-muted-foreground">{t('menu.opponents')}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={opponents} onValueChange={(value) => setOpponentsView(value as OpponentsView)}>
+          {OPPONENT_VIEWS.map((option) => (
+            <DropdownMenuRadioItem key={option} value={option} className="gap-2" onSelect={(event) => event.preventDefault()}>
+              {t(`opponents.${option}`)}
             </DropdownMenuRadioItem>
           ))}
         </DropdownMenuRadioGroup>
@@ -91,6 +116,12 @@ const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMe
           <CircleHelp className="size-4" />
           {t('menu.help')}
         </DropdownMenuItem>
+        {onInstall && (
+          <DropdownMenuItem onSelect={onInstall}>
+            <Download className="size-4" />
+            {t('menu.install')}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onLeave} className="text-destructive focus:text-destructive">
           <LogOut className="size-4" />

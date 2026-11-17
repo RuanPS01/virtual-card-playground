@@ -4,25 +4,33 @@ import type { PlayerView } from '@shared/types';
 import { seatColor } from '@/game/stage';
 import { useT } from '@/lib/i18n';
 
-// Outro jogador na barra superior. A mão dele chega só como contagem, então a
-// etiqueta mostra mini versos. Ela também é alvo de soltura: carta solta aqui
+// Outro jogador na barra superior, na visão compacta (a padrão é o leque, em
+// OpponentFan). A mão dele chega só como contagem, então a etiqueta mostra
+// mini versos. Ela também é alvo de soltura: carta solta aqui
 // vai para a mão desse jogador.
 
-interface PlayerBadgeProps {
+export interface OpponentProps {
   player: PlayerView;
   highlighted: boolean;
-  onRemove(player: PlayerView): void;
+  /** Sem onRemove (na barra ampliada do arrasto) o botão de remover some. */
+  onRemove?(player: PlayerView): void;
+  /**
+   * Âncora das animações: as cartas entregues voam até o elemento com
+   * data-player. Só a cópia da barra superior é âncora; a da barra ampliada
+   * some ao soltar e deixaria a carta voando para o nada.
+   */
+  anchor?: boolean;
 }
 
 const MAX_MINI = 5;
 
-const PlayerBadge = memo(({ player, highlighted, onRemove }: PlayerBadgeProps) => {
+const PlayerBadge = memo(({ player, highlighted, onRemove, anchor = true }: OpponentProps) => {
   const t = useT();
   return (
     <div
       className="player-badge"
       data-drop={`player:${player.id}`}
-      data-player={player.id}
+      data-player={anchor ? player.id : undefined}
       data-hover={highlighted}
       data-offline={!player.connected}
       style={{ '--seat': seatColor(player.seat) } as CSSProperties}
@@ -36,7 +44,7 @@ const PlayerBadge = memo(({ player, highlighted, onRemove }: PlayerBadgeProps) =
         ))}
       </span>
       <span className="tabular-nums">{player.handCount}</span>
-      {!player.connected && (
+      {!player.connected && onRemove && (
         <button
           type="button"
           className="player-remove"

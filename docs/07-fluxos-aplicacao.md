@@ -28,19 +28,76 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Arrastar dentro da mão | Reordena; uma vaga se abre onde a carta vai entrar |
 | Tocar em carta da mesa | Vira |
 | Soltar carta sobre outra (centros próximos) | Cria um grupo em pilha |
-| Soltar carta sobre um grupo | Entra no grupo |
+| Soltar carta sobre um grupo em pilha | Entra no topo do grupo |
+| Soltar carta sobre um grupo em leque | Entra na posição onde for solta; uma vaga se abre no leque para mostrar onde |
+| Arrastar uma carta dentro do leque | Reordena o grupo, como na mão (qualquer jogador pode, o grupo está na mesa) |
 | Arrastar a etiqueta do grupo | Move o grupo inteiro |
 | Tocar na etiqueta do grupo | Alterna pilha e leque |
-| Arrastar carta de um grupo | Tira a carta do grupo |
-| Soltar sobre o nome de um jogador | A carta vai para a mão dele |
+| Arrastar carta de um grupo para fora dele | Tira a carta do grupo; as outras se juntam |
+| Levar a carta até o topo da tela | A barra de jogadores aparece ampliada, com alvos grandes |
+| Soltar sobre um jogador | A carta vai para a mão dele |
 | Soltar sobre o monte | A carta volta para o topo do monte |
 | Botões Valor e Naipe | Ordenam a sua mão |
 | Seletor Aberta/Fechada | Define como as cartas da mão e do monte chegam à mesa |
 
-Menu: adicionar baralho, remover cartas do monte, reiniciar (tudo volta ao
-monte), cor da mesa (feltro verde ou vinho), som, idioma, ajuda e sair. A cor
-da mesa também pode ser escolhida na tela de entrada e vale só para quem
-escolheu.
+Menu: adicionar baralho, remover um baralho, remover cartas do monte,
+reiniciar (tudo volta ao monte), reiniciar com um baralho original, cor da mesa
+(feltro verde ou vinho), adversários (leques de cartas, o padrão, ou
+etiquetas), som, idioma, ajuda, instalar app e sair. A cor da mesa também pode ser escolhida
+na tela de entrada. As duas escolhas de visual valem só para quem escolheu.
+
+### Baralhos no monte
+
+- **Adicionar baralho:** 52 cartas novas entram no monte, que é embaralhado.
+- **Remover um baralho:** sai do monte uma cópia de cada carta. Uma carta com
+  uma cópia só nunca sai, então a mesa mantém pelo menos um baralho (com um
+  baralho só, a opção fica desabilitada). Se as cópias extras de alguma carta
+  estiverem na mesa ou nas mãos, ela fica, e o aviso diz quantas ficaram.
+- **Remover cartas do monte:** por valor ou naipe (por exemplo, para truco).
+- **Reiniciar jogo:** tudo volta ao monte, com a composição atual.
+- **Reiniciar com um baralho original:** tudo sai da mesa e das mãos, e o
+  monte volta a ser um único baralho de 52 cartas, embaralhado. Desfaz baralhos
+  adicionados e cartas removidas.
+
+Todas pedem confirmação e valem para a sala inteira.
+
+### Instalar o app
+
+A mesa é um PWA: pode ser instalada como app no celular e no computador, e
+abre pelo ícone, em tela cheia e sem a barra do navegador. A opção "Instalar
+app" fica no menu da mesa e na tela de entrada, e some quando o app já está
+aberto como app instalado.
+
+- Chrome, Edge e Android: a opção abre o pedido de instalação do navegador.
+  A faixa automática que o Chrome mostra no celular é suprimida, para não
+  aparecer por cima da mesa no meio do jogo.
+- iPhone e iPad (Safari): abre o passo a passo (Compartilhar, Adicionar à Tela
+  de Início), porque o Safari não oferece instalação direta pela página.
+- Outros navegadores: abre o caminho pelo menu do navegador.
+
+Quando sai uma versão nova, aparece o aviso "Há uma versão nova da mesa" com o
+botão Atualizar. A página não recarrega sozinha, para não interromper uma
+jogada; ao atualizar, o jogador volta ao mesmo assento.
+
+### Entregar carta pela barra ampliada
+
+Quando uma carta arrastada chega perto do topo da tela, a barra de jogadores
+aparece por cima, bem maior (o título diz "Entregar para"). Ao passar sobre um
+jogador, o alvo se destaca, o título passa a dizer "Entregar para Fulano" e a
+carta encolhe e fica translúcida para não esconder o nome. Ao afastar a carta
+do topo, a barra some e a carta pode ser solta na mesa normalmente. A barra
+não empurra o layout: as cartas da mesa não se mexem enquanto ela aparece.
+
+### Reordenar um grupo em leque
+
+Com o grupo aberto em leque, arrastar uma carta dele faz as outras se
+juntarem, e uma vaga se abre na posição mais próxima do centro da carta. Ao
+soltar, a carta entra ali. Soltar de volta na mesma vaga não envia nada. O
+leque reconhece a carta pela posição do centro dela, com folga, e não só pelo
+dedo: quem segura a carta pela borda no celular continua acertando o leque.
+Em pilha não há posição visível, então a carta sempre entra no topo.
+
+![Vaga aberta no leque durante o arrasto](assets/leque-reordenando.webp)
 
 ## 7.4 Ciclo de uma ação
 

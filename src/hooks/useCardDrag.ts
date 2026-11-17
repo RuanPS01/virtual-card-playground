@@ -6,11 +6,12 @@
 // ponteiro move os valores de movimento do sprite diretamente e, ao soltar, o
 // alvo é resolvido e vira UMA ação enviada à sala.
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
 import { animate } from 'framer-motion';
 import type { Action, CardSource, ErrorCode, LiveMessage, RoomView } from '@shared/types';
-import { clamp, handSlots, nearestSlot, stageToTable, type Point, type StageMetrics } from '@/game/layout';
+import { clamp, handSlots, nearestSlot, pileGeometry, stageToTable, type Point, type StageMetrics } from '@/game/layout';
 import { DECK_KEY, pileKey, type FxApi, type SpriteRegistry } from '@/game/stage';
+import type { PileGap } from '@/game/targets';
 import type { SendResult } from '@/lib/realtime';
 import { sfx } from '@/lib/sfx';
 
@@ -23,7 +24,8 @@ type DropTarget =
   | { kind: 'hand'; index: number; beforeId: string | null }
   | { kind: 'player'; playerId: string }
   | { kind: 'deck' }
-  | { kind: 'pile'; pileId: string }
+  /** index e beforeId só existem no leque, onde a posição é visível. */
+  | { kind: 'pile'; pileId: string; index: number | null; beforeId: string | null }
   | { kind: 'card'; cardId: string }
   | { kind: 'table'; x: number; y: number };
 
@@ -55,6 +57,8 @@ interface ActiveDrag {
   dirty: boolean;
   lastLive: number;
   live: { target: 'card' | 'pile'; id: string } | null;
+  /** A carta está sobre um jogador (e por isso encolhida). */
+  overPlayer: boolean;
   frame: number;
   detach(): void;
 }
@@ -76,6 +80,16 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
   const [held, setHeld] = useState<ReadonlySet<string>>(() => new Set());
   const [handGap, setHandGap] = useState<number | null>(null);
   const [hover, setHover] = useState<string | null>(null);
+  /** A carta chegou perto do topo: a barra de jogadores aparece ampliada. */
+  const [reachPlayers, setReachPlayers] = useState(false);
+  // Guardada como texto ("pileId:índice") para o React ignorar o setState
+  // quando a vaga não mudou: o laço de arrasto chama isto a cada quadro.
+  const [pileGapKey, setPileGapKey] = useState<string | null>(null);
+  const pileGap = useMemo<PileGap | null>(() => {
+    if (!pileGapKey) return null;
+    const cut = pileGapKey.lastIndexOf(':');
+    return { pileId: pileGapKey.slice(0, cut), index: Number(pileGapKey.slice(cut + 1)) };
+  }, [pileGapKey]);
 
   const world = useRef<DragWorld | null>(null);
   const active = useRef<ActiveDrag | null>(null);
@@ -130,6 +144,24 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
       const origin = stageOrigin();
       const card = drag.source.kind === 'card' ? now.view.cards.find((c) => c.id === (drag.source as { cardId: string }).cardId) : null;
 
+      const pileTarget = (pileId: string): DropTarget | null | undefined => {
+        const pile = now.view.piles.find((p) => p.id === pileId);
+        if (!pile) return undefined;
+        if (pile.mode !== 'fan') {
+          // Na pilha as cartas se sobrepõem e não há posição para escolher:
+          // soltar na própria pilha cancela, e de fora vai para o topo.
+          return card?.pileId === pileId ? null : { kind: 'pile', pileId, index: null, beforeId: null };
+        }
+        // No leque a posição aparece, então vale a mesma regra da mão: a
+        // vaga mais próxima do centro da carta, medida no leque com uma vaga a mais.
+        const free = now.view.cards
+          .filter((c) => c.zone === 'pile' && c.pileId === pileId && !drag.keys.includes(c.id) && !heldRef.current.has(c.id))
+          .sort((a, b) => a.order - b.order);
+        const geometry = pileGeometry(m, pile, free.length + 1);
+        const index = nearestSlot(Array.from({ length: free.length + 1 }, (_, i) => geometry.cardAt(i)), center.x);
+        return { kind: 'pile', pileId, index, beforeId: free[index]?.id ?? null };
+      };
+
       // O que está sob o ponteiro, do mais alto para o mais baixo. Ler o DOM
       // respeita sobreposição e rotação exatamente como a tela mostra.
       for (const element of document.elementsFromPoint(drag.px + origin.x, drag.py + origin.y)) {
@@ -148,9 +180,9 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
         if (drop === 'deck') return drag.source.kind === 'deck' ? null : { kind: 'deck' };
         if (drop.startsWith('player:')) return { kind: 'player', playerId: drop.slice(7) };
         if (drop.startsWith('pile:')) {
-          const pileId = drop.slice(5);
-          // Soltar no próprio grupo cancela: a carta volta para o lugar.
-          return card?.pileId === pileId ? null : { kind: 'pile', pileId };
+          const target = pileTarget(drop.slice(5));
+          if (target !== undefined) return target;
+          continue;
         }
         if (drop.startsWith('card:')) {
           const targetId = drop.slice(5);
@@ -160,6 +192,18 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
           if (target && Math.abs(center.x - target.x.get()) < m.cardW * 0.5 && Math.abs(center.y - target.y.get()) < m.cardH * 0.5) {
             return { kind: 'card', cardId: targetId };
           }
+        }
+      }
+      // O dedo pode estar fora do leque mesmo com a carta em cima dele (quem
+      // segura pela borda, no celular, onde o leque é estreito). Por isso o
+      // leque também aceita a carta pela posição do CENTRO dela, com folga.
+      for (const pile of now.view.piles) {
+        if (pile.mode !== 'fan') continue;
+        const count = now.view.cards.filter((c) => c.pileId === pile.id).length;
+        const zone = pileGeometry(m, pile, count);
+        if (Math.abs(center.x - zone.cx) < zone.width / 2 + m.cardW * 0.2 && Math.abs(center.y - zone.cy) < m.cardH * 0.45) {
+          const target = pileTarget(pile.id);
+          if (target !== undefined) return target;
         }
       }
       return { kind: 'table', ...stageToTable(m, center.x, center.y) };
@@ -185,8 +229,15 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
         return { type: 'toHand', src, playerId: target.playerId };
       case 'deck':
         return source.kind === 'card' ? { type: 'toDeck', cardId: source.cardId } : null;
-      case 'pile':
-        return { type: 'toPile', src, pileId: target.pileId, faceUp };
+      case 'pile': {
+        if (card?.pileId === target.pileId) {
+          // Soltou de volta na mesma vaga: nada mudou, não há o que enviar.
+          const members = now.view.cards.filter((c) => c.pileId === target.pileId).sort((a, b) => a.order - b.order);
+          const next = members[members.findIndex((c) => c.id === card.id) + 1]?.id ?? null;
+          if (next === target.beforeId) return null;
+        }
+        return { type: 'toPile', src, pileId: target.pileId, faceUp, beforeId: target.beforeId };
+      }
       case 'card':
         return { type: 'stackOn', src, targetId: target.cardId, faceUp };
       case 'table':
@@ -197,6 +248,8 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
   const settleHandles = useCallback(
     (keys: string[]) => {
       keys.forEach((key) => {
+        const element = document.querySelector<HTMLElement>(`[data-key="${key}"]`);
+        if (element) delete element.dataset.overPlayer;
         const handle = registry.get(key);
         if (!handle) return;
         animate(handle.rotate, 0, { type: 'spring', stiffness: 300, damping: 18 });
@@ -211,6 +264,7 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
     cancelAnimationFrame(drag.frame);
     if (active.current === drag) active.current = null;
     setHover(null);
+    setReachPlayers(false);
   }, []);
 
   const cancel = useCallback(
@@ -218,10 +272,12 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
       finish(drag);
       if (!drag.started) return;
       if (drag.live) sendLive({ kind: 'end' });
+      settleHandles(drag.keys);
       setHandGap(null);
+      setPileGapKey(null);
       release(drag.keys);
     },
-    [finish, release, sendLive],
+    [finish, release, sendLive, settleHandles],
   );
 
   const tap = useCallback(
@@ -261,6 +317,7 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
       if (!action) {
         if (drag.live) sendLive({ kind: 'end' });
         setHandGap(null);
+        setPileGapKey(null);
         release(drag.keys);
         return;
       }
@@ -283,6 +340,7 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
       // os outros já receberam o estado novo e a carta não dá meia-volta.
       if (drag.live) sendLive({ kind: 'end' });
       setHandGap(null);
+      setPileGapKey(null);
       release(drag.keys);
       if (!result.ok) onError((result as { error: ErrorCode }).error);
     },
@@ -346,10 +404,36 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
 
       if (drag.dirty && m) {
         drag.dirty = false;
+        // Barra ampliada: liga quando o ponteiro chega perto do topo e só
+        // desliga quando ele sai de baixo dela, com folga, para não piscar
+        // no limite. Grupo inteiro não vai para a mão de ninguém.
+        if (drag.source.kind !== 'pile' && now.view.players.length > 1) {
+          const bar = document.querySelector<HTMLElement>('.player-reach');
+          const limit = bar ? bar.getBoundingClientRect().bottom - stageOrigin().y + m.cardH * 0.3 : m.play.y + m.cardH * 0.35;
+          setReachPlayers(drag.py < limit);
+        }
+
         const target = resolve(drag);
         setHandGap(target?.kind === 'hand' ? target.index : null);
+        setPileGapKey(target?.kind === 'pile' && target.index !== null ? `${target.pileId}:${target.index}` : null);
+        // Sobre um jogador a carta encolhe e fica translúcida: do contrário
+        // ela esconde exatamente o nome de quem vai recebê-la.
+        const overPlayer = target?.kind === 'player';
+        if (overPlayer !== drag.overPlayer) {
+          drag.overPlayer = overPlayer;
+          const handle = registry.get(drag.keys[0]);
+          if (handle) animate(handle.scale, handle.base() * (overPlayer ? 0.55 : 1.12), { duration: 0.14 });
+          const element = document.querySelector<HTMLElement>(`[data-key="${drag.keys[0]}"]`);
+          if (element) element.dataset.overPlayer = String(overPlayer);
+        }
+        // Reordenar dentro do próprio leque não acende o grupo: a vaga aberta
+        // já mostra o que vai acontecer.
+        const ownPile =
+          target?.kind === 'pile' &&
+          drag.source.kind === 'card' &&
+          now?.view.cards.find((c) => c.id === (drag.source as { cardId: string }).cardId)?.pileId === target.pileId;
         setHover(
-          !target || target.kind === 'table'
+          !target || target.kind === 'table' || ownPile
             ? null
             : target.kind === 'hand' || target.kind === 'deck'
               ? target.kind
@@ -370,7 +454,7 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
       }
       drag.frame = requestAnimationFrame(() => tick(drag));
     },
-    [centerOf, registry, resolve, sendLive],
+    [centerOf, registry, resolve, sendLive, stageOrigin],
   );
 
   const begin = useCallback(
@@ -407,6 +491,7 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
         dirty: false,
         lastLive: 0,
         live: null,
+        overPlayer: false,
         frame: 0,
         detach: () => undefined,
       };
@@ -478,7 +563,7 @@ export const useCardDrag = ({ stageRef, registry, fx, send, sendLive, onError }:
     [],
   );
 
-  return { held, handGap, hover, begin, world, spawnHint };
+  return { held, handGap, pileGap, hover, reachPlayers, begin, world, spawnHint };
 };
 
 export type CardDragApi = ReturnType<typeof useCardDrag>;

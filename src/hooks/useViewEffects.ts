@@ -51,6 +51,12 @@ const play = (event: ActionEvent, { view, metrics, targets }: World, fx: FxApi):
       break;
     case 'toPile':
     case 'stackOn':
+      if (event.from?.zone === 'pile' && event.to?.zone === 'pile' && event.from.pileId === event.to.pileId) {
+        // Reordenação dentro do leque: mesmo retorno da reordenação da mão.
+        sfx.deal();
+        if (event.cardId) fx.pop(event.cardId);
+        break;
+      }
       sfx.stack();
       if (card && event.cardId) {
         if (event.type === 'stackOn') fx.burst(card.x, card.y, 'spark');
@@ -86,10 +92,24 @@ const play = (event: ActionEvent, { view, metrics, targets }: World, fx: FxApi):
       if (event.count) fx.text(deck.x, deck.y - cardH * 0.62, `-${event.count}`, 'red');
       if (mine) toast.success(t('toast.removed', { count: event.count ?? 0 }));
       break;
+    case 'removeDeck':
+      sfx.drop();
+      fx.shake(0.4);
+      if (event.count) fx.text(deck.x, deck.y - cardH * 0.62, `-${event.count}`, 'red');
+      if (mine) {
+        toast.success(
+          event.skipped
+            ? t('toast.deckRemovedPartial', { count: event.count ?? 0, skipped: event.skipped })
+            : t('toast.deckRemoved', { count: event.count ?? 0 }),
+        );
+      }
+      break;
     case 'reset':
+    case 'resetToOneDeck':
       sfx.shuffle();
       fx.shake(1);
       fx.burst(deck.x, deck.y, 'confetti');
+      if (event.type === 'resetToOneDeck') fx.text(deck.x, deck.y - cardH * 0.62, `${event.count ?? 52}`, 'gold');
       break;
     case 'sortHand':
       if (mine) sfx.deal();

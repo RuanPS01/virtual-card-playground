@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type FormEvent } from 'react';
 import { motion } from 'framer-motion';
-import { Languages, Loader2 } from 'lucide-react';
+import { Download, Languages, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Rank, Suit } from '@shared/cards';
 import { normalizeRoomCode, ROOM_CODE_LENGTH } from '@shared/ids';
@@ -8,6 +8,8 @@ import { MAX_NAME_LENGTH } from '@shared/types';
 import { CardFront } from '@/components/game/CardFace';
 import FeltBackground from '@/components/game/effects/FeltBackground';
 import FeltPicker from '@/components/game/FeltPicker';
+import InstallDialog from '@/components/game/InstallDialog';
+import { useInstallFlow } from '@/hooks/useInstallFlow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +44,7 @@ const RoomSetup = ({ busy, resumingRoom, transport, onJoinRoom, onCreateRoom }: 
   const [playerName, setPlayerName] = useState(loadName);
   const [roomId, setRoomId] = useState(invited);
   const [mode, setMode] = useState<'join' | 'create' | null>(invited ? 'join' : null);
+  const install = useInstallFlow();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -145,7 +148,8 @@ const RoomSetup = ({ busy, resumingRoom, transport, onJoinRoom, onCreateRoom }: 
 
         <div className="mt-4 flex flex-col items-center gap-2 text-center text-sm text-foreground/80">
           <p>{t('lobby.hint')}</p>
-          <div className="flex items-center gap-3">
+          {/* Quebra em duas linhas no celular estreito, sem rolagem lateral. */}
+          <div className="flex flex-wrap items-center justify-center gap-3">
             <span>{transport === 'ws' ? t('lobby.modeWs') : t('lobby.modeFirebase')}</span>
             <FeltPicker />
             <button
@@ -157,9 +161,16 @@ const RoomSetup = ({ busy, resumingRoom, transport, onJoinRoom, onCreateRoom }: 
               <Languages />
               <span>{getLocale() === 'pt-BR' ? 'PT' : 'EN'}</span>
             </button>
+            {!install.installed && (
+              <button type="button" className="chip-btn" onClick={() => void install.install()}>
+                <Download />
+                <span>{t('menu.install')}</span>
+              </button>
+            )}
           </div>
         </div>
       </motion.div>
+      <InstallDialog open={install.helpOpen} method={install.method} onOpenChange={install.setHelpOpen} />
     </div>
   );
 };

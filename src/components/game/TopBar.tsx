@@ -4,7 +4,9 @@ import type { PlayerView, RoomView } from '@shared/types';
 import { useT } from '@/lib/i18n';
 import type { ConnectionStatus } from '@/lib/realtime';
 import { inviteLink } from '@/lib/realtime/session';
+import { useOpponentsView } from '@/lib/opponentsView';
 import GameMenu, { type GameMenuProps } from './GameMenu';
+import OpponentFan from './OpponentFan';
 import PlayerBadge from './PlayerBadge';
 
 // Barra superior: código da sala, os outros jogadores e o menu. Em tela
@@ -21,6 +23,8 @@ interface TopBarProps extends GameMenuProps {
 const TopBar = ({ view, status, hover, onRemovePlayer, ...menu }: TopBarProps) => {
   const t = useT();
   const others = view.players.filter((player) => player.id !== view.me);
+  const opponentsView = useOpponentsView();
+  const Opponent = opponentsView === 'fans' ? OpponentFan : PlayerBadge;
 
   const copyInvite = async () => {
     try {
@@ -47,12 +51,12 @@ const TopBar = ({ view, status, hover, onRemovePlayer, ...menu }: TopBarProps) =
         </span>
       )}
 
-      <div className="hud-players order-3 basis-full sm:order-2 sm:basis-0">
+      <div className="hud-players order-3 basis-full sm:order-2 sm:basis-0" data-view={opponentsView}>
         {others.length === 0 ? (
           <span className="px-2 text-sm text-foreground/70">{t('hud.alone')}</span>
         ) : (
           others.map((player) => (
-            <PlayerBadge key={player.id} player={player} highlighted={hover === `player:${player.id}`} onRemove={onRemovePlayer} />
+            <Opponent key={player.id} player={player} highlighted={hover === `player:${player.id}`} onRemove={onRemovePlayer} />
           ))
         )}
       </div>

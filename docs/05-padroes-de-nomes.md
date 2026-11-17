@@ -37,13 +37,15 @@ Verbo ou destino em camelCase. A carta de origem vem sempre em `src`:
 |---|---|
 | `toHand` | Carta para uma mão (`playerId` opcional; `beforeId` posiciona) |
 | `toTable` | Carta para a mesa em `x`, `y` normalizados (`faceUp` opcional) |
-| `toPile` | Carta para um grupo existente |
+| `toPile` | Carta para um grupo existente (`beforeId` posiciona, como na mão; sem ele vai para o topo). Também reordena dentro do próprio grupo |
 | `stackOn` | Carta sobre outra: cria grupo ou entra no grupo do alvo |
 | `toDeck` | Carta de volta ao topo do monte (ganha id novo) |
 | `flip` | Vira carta da mesa ou de grupo |
 | `movePile` | Move um grupo |
 | `setPileMode` | `fan` (leque) ou `stack` (pilha) |
 | `shuffleDeck`, `addDeck`, `removeCards`, `reset` | Monte |
+| `removeDeck` | Tira do monte uma cópia de cada carta (desfaz um `addDeck`). Nunca tira a última cópia; cópias fora do monte ficam e são contadas em `skipped` |
+| `resetToOneDeck` | Recolhe tudo e deixa só um baralho original de 52 cartas, com ids novos |
 | `sortHand` | Ordena a própria mão por `rank` ou `suit` |
 | `removePlayer` | Remove jogador desconectado; a mão volta ao monte |
 
@@ -55,7 +57,8 @@ zona é `hand`, id do grupo quando é `pile`, `null` nas demais.
 ## 5.6 Códigos de erro
 
 `snake_case`, listados em `ErrorCode` ([`shared/types.ts`](../shared/types.ts)).
-Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `not_your_card`,
+Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `single_deck`,
+`deck_incomplete`, `not_your_card`,
 `card_not_found`, `room_not_found`, `offline` e outros.
 
 ## 5.7 Chaves de i18n
@@ -69,6 +72,9 @@ Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `not_your_card`,
 | `menu.` | Menu da mesa |
 | `hand.`, `deck.`, `table.`, `pile.`, `player.` | Partes da mesa |
 | `felt.` | Nomes das cores da mesa (`felt.green`, `felt.wine`) |
+| `opponents.` | Visões dos adversários (`opponents.badges`, `opponents.fans`) |
+| `reach.` | Barra de jogadores ampliada durante o arrasto |
+| `pwa.`, `install.` | Avisos do app instalável e passo a passo de instalação |
 | `confirm.<tipo>.title`, `.text`, `.ok` | Diálogos de confirmação |
 | `toast.` | Avisos |
 | `error.` | Códigos de erro |
@@ -81,7 +87,8 @@ Variáveis entre chaves: `t('toast.roomCreated', { room: 'K7M2QX' })`.
 ## 5.8 Chaves de armazenamento do navegador
 
 Prefixo `vcp.`: `vcp.session` (sessionStorage), `vcp.name`, `vcp.muted`,
-`vcp.locale` e `vcp.felt` (localStorage).
+`vcp.locale`, `vcp.felt` e `vcp.opponents` (localStorage). Preferências novas
+usam [`createPreference`](../src/lib/preference.ts).
 
 ## 5.9 Chaves do registro de sprites
 

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useMemo, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import type { RoomView } from '@shared/types';
 import type { CardDragApi } from '@/hooks/useCardDrag';
@@ -23,9 +23,11 @@ interface CardLayerProps {
   exitLookup: ExitLookup;
   drag: CardDragApi;
   shuffleTick: number;
+  /** Sobreposições que precisam ficar entre as cartas da mesa e a carta segurada. */
+  children?: ReactNode;
 }
 
-const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTick }: CardLayerProps) => {
+const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTick, children }: CardLayerProps) => {
   const { begin, held, hover } = drag;
 
   const grabCard = useCallback((cardId: string, event: ReactPointerEvent) => begin({ kind: 'card', cardId }, event), [begin]);
@@ -91,8 +93,10 @@ const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTi
         const geometry = targets.piles.get(pile.id);
         if (!geometry) return null;
         const key = pileKey(pile.id);
-        // A etiqueta fica acima das cartas do próprio grupo.
-        const top = Math.max(0, ...view.cards.filter((card) => card.pileId === pile.id).map((card) => targets.cards.get(card.id)?.z ?? 0));
+        // A etiqueta fica acima das cartas do próprio grupo e conta as cartas
+        // de verdade, e não as vagas (a vaga aberta no leque não é carta).
+        const members = view.cards.filter((card) => card.pileId === pile.id);
+        const top = Math.max(0, ...members.map((card) => targets.cards.get(card.id)?.z ?? 0));
         return (
           <PileChip
             key={pile.id}
@@ -100,7 +104,7 @@ const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTi
             x={geometry.chip.x}
             y={geometry.chip.y}
             z={top + 1}
-            count={geometry.count}
+            count={members.length}
             mode={pile.mode}
             held={held.has(key)}
             highlighted={hover === key}
@@ -109,6 +113,7 @@ const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTi
           />
         );
       })}
+      {children}
     </div>
   );
 };
