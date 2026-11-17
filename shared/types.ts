@@ -81,7 +81,11 @@ export type Action =
   | { type: 'shuffleDeck' }
   | { type: 'addDeck' }
   | { type: 'removeCards'; suits: Suit[]; ranks: Rank[] }
+  /** Tira do monte uma cópia de cada carta: desfaz um "adicionar baralho". */
+  | { type: 'removeDeck' }
   | { type: 'reset' }
+  /** Recolhe tudo e deixa só um baralho original de 52 cartas. */
+  | { type: 'resetToOneDeck' }
   | { type: 'sortHand'; by: 'rank' | 'suit' }
   | { type: 'removePlayer'; playerId: string };
 
@@ -93,6 +97,8 @@ export type ErrorCode =
   | 'card_not_found'
   | 'not_your_card'
   | 'deck_empty'
+  | 'single_deck'
+  | 'deck_incomplete'
   | 'pile_not_found'
   | 'player_not_found'
   | 'player_connected'
@@ -121,6 +127,8 @@ export interface ActionEvent {
   to?: Place;
   /** Quantidade afetada (baralho adicionado, cartas removidas). */
   count?: number;
+  /** Cartas que deveriam sair mas ficaram (estavam fora do monte). */
+  skipped?: number;
 }
 
 // ---------------------------------------------------------------------------

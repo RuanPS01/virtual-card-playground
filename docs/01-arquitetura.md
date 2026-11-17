@@ -89,6 +89,7 @@ src/
     ├── felt.ts       Cor da mesa (verde ou vinho)
     ├── opponentsView.ts Adversários como etiquetas ou leques
     ├── feltTexture.ts Textura de tecido do feltro
+    ├── pwa.ts        Service worker e instalação do app
     └── tokens.ts     Leitura dos tokens de cor em JS
 ```
 
@@ -169,3 +170,21 @@ O prefixo `/virtual-card-playground` vem de `base` no
 [`App.tsx`](../src/App.tsx), por causa do GitHub Pages.
 
 Servidor: `GET /healthz` (saúde e número de salas) e WebSocket em `/ws`.
+
+## 1.7 App instalável (PWA)
+
+O [`vite-plugin-pwa`](https://vite-pwa-org.netlify.app/) gera no build o
+manifesto (`manifest.webmanifest`) e um service worker do Workbox (`sw.js`),
+ambos sob `/virtual-card-playground/`. A configuração fica no
+[`vite.config.ts`](../vite.config.ts).
+
+- O service worker guarda os arquivos do app (HTML, JS, CSS, fonte, ícones),
+  com versão, para abrir rápido e funcionar sem rede até a tela de entrada.
+- Ele **não** intercepta o tempo real: o WebSocket e o Firebase são de outra
+  origem, e o estado da sala nunca vai para o cache.
+- O registro fica em [`src/lib/pwa.ts`](../src/lib/pwa.ts) e só acontece no
+  build de produção. No `npm run dev` não há service worker, para ele não
+  guardar arquivos velhos e atrapalhar a recarga do Vite. Para testar o PWA:
+  `npm run build` e `npx vite preview`.
+- Versão nova: o service worker novo espera, e o jogador vê o aviso com o
+  botão Atualizar. Nada recarrega sozinho no meio de uma partida.

@@ -7,7 +7,11 @@ import './index.css';
 import '@fontsource/jersey-15/400.css';
 // Aplica a cor da mesa escolhida antes do primeiro render, sem piscar o verde.
 import '@/lib/felt';
+// Cedo de propósito: o aviso de "pode instalar" pode chegar antes do React montar.
+import { registerPwa } from '@/lib/pwa';
 import App from './App.tsx';
+
+void registerPwa();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

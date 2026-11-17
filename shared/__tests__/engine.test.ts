@@ -270,6 +270,70 @@ describe('monte', () => {
     expect(applyAction(full, 'p1', { type: 'addDeck' })).toEqual({ ok: false, error: 'bad_action' });
   });
 
+  const copiesOf = (state: RoomState) => {
+    const map = new Map<string, number>();
+    for (const card of Object.values(state.cards)) map.set(`${card.rank}${card.suit}`, (map.get(`${card.rank}${card.suit}`) ?? 0) + 1);
+    return map;
+  };
+
+  it('remover baralho tira uma cópia de cada carta do monte', () => {
+    let state = must(room(), 'p1', { type: 'addDeck' });
+    state = must(state, 'p1', { type: 'addDeck' });
+    expect(total(state)).toBe(156);
+    state = must(state, 'p2', { type: 'removeDeck' });
+    expect(state.last).toMatchObject({ type: 'removeDeck', count: 52, skipped: 0 });
+    expect(cardsIn(state, 'deck')).toHaveLength(104);
+    expect([...copiesOf(state).values()].every((n) => n === 2)).toBe(true);
+    expect(copiesOf(state).size).toBe(52);
+  });
+
+  it('remover baralho nunca tira a última cópia de uma carta', () => {
+    expect(applyAction(room(), 'p1', { type: 'removeDeck' })).toEqual({ ok: false, error: 'single_deck' });
+    // Um baralho a mais, mas sem as copas: as copas só têm uma cópia e ficam.
+    let state = must(room(), 'p1', { type: 'removeCards', suits: ['hearts'], ranks: [] });
+    state = must(state, 'p1', { type: 'addDeck' });
+    state = must(state, 'p1', { type: 'removeDeck' });
+    expect(state.last).toMatchObject({ count: 39, skipped: 0 });
+    expect(total(state)).toBe(52);
+    expect([...copiesOf(state).values()].every((n) => n === 1)).toBe(true);
+  });
+
+  it('cópias fora do monte ficam e são contadas', () => {
+    let state = must(room(), 'p1', { type: 'addDeck' });
+    // Compra até a mão ter as duas cópias de alguma carta.
+    const bothInHand = () => [...copiesOf({ ...state, cards: Object.fromEntries(handIds(state, 'p1').map((id) => [id, state.cards[id]])) }).values()].filter((n) => n === 2).length;
+    while (bothInHand() === 0) state = draw(state, 'p1');
+    const kept = bothInHand();
+    const inHand = handIds(state, 'p1').length;
+    state = must(state, 'p1', { type: 'removeDeck' });
+    expect(state.last).toMatchObject({ count: 52 - kept, skipped: kept });
+    expect(handIds(state, 'p1')).toHaveLength(inHand);
+    expect(total(state)).toBe(104 - (52 - kept));
+  });
+
+  it('avisa quando as cópias extras estão todas fora do monte', () => {
+    let state = must(room(), 'p1', { type: 'addDeck' });
+    while (cardsIn(state, 'deck').length > 0) state = draw(state, 'p2');
+    expect(applyAction(state, 'p1', { type: 'removeDeck' })).toEqual({ ok: false, error: 'deck_incomplete' });
+  });
+
+  it('reiniciar com um baralho original devolve as 52 cartas e só elas', () => {
+    let state = must(room(), 'p1', { type: 'addDeck' });
+    state = must(state, 'p1', { type: 'removeCards', suits: ['spades'], ranks: ['A'] });
+    state = draw(state, 'p2');
+    state = must(state, 'p1', { type: 'toTable', src: { from: 'deck' }, x: 0.5, y: 0.5 });
+    state = must(state, 'p1', { type: 'stackOn', src: { from: 'deck' }, targetId: cardsIn(state, 'table')[0].id });
+    const oldIds = new Set(Object.keys(state.cards));
+    state = must(state, 'p2', { type: 'resetToOneDeck' });
+    expect(cardsIn(state, 'deck')).toHaveLength(52);
+    expect(total(state)).toBe(52);
+    expect(copiesOf(state).size).toBe(52);
+    expect(state.piles).toEqual({});
+    expect(handIds(state, 'p2')).toEqual([]);
+    expect(Object.keys(state.cards).some((id) => oldIds.has(id))).toBe(false);
+    expect(Object.keys(state.players)).toEqual(['p1', 'p2']);
+  });
+
   it('reiniciar devolve tudo ao monte e apaga os grupos', () => {
     let state = draw(room(), 'p1');
     state = must(state, 'p2', { type: 'toTable', src: { from: 'deck' }, x: 0.5, y: 0.5 });

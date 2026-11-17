@@ -152,6 +152,12 @@ transparência e sem cantos, que o iOS arredonda sozinho). Os três estão
 declarados no `index.html`; sem isso o navegador usaria o ícone da raiz do
 domínio. Ao mudar o SVG, gere os derivados de novo a partir dele.
 
+Ícones do app instalado (PWA), também derivados do SVG: `pwa-192.png`,
+`pwa-512.png` e `pwa-maskable-512.png`. O maskable tem o feltro até a borda e
+o desenho reduzido para caber no círculo seguro (o Android recorta em círculo
+ou gota). O manifesto usa `--felt-dark` (`#082117`) como cor de fundo da
+abertura e da barra do sistema.
+
 ## 3.1.7 Tipografia
 
 | Item | Valor |

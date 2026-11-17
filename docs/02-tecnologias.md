@@ -18,6 +18,7 @@
 | Testes | vitest | 2.1 | Motor e transporte Firebase |
 | Servidor em dev | tsx | 4.x | Roda `server/index.ts` com recarga |
 | Empacotador do servidor | esbuild | 0.21 | Gera `dist-server/index.cjs` com `ws` embutido |
+| PWA | vite-plugin-pwa + workbox-window | 0.21 / 7.4 | Manifesto, service worker com cache versionado e aviso de versão nova |
 
 Áudio e efeitos não usam biblioteca: sons são sintetizados com a Web Audio API
 ([`sfx.ts`](../src/lib/sfx.ts)), a textura de tecido do feltro é desenhada uma
@@ -88,6 +89,11 @@ roda em todo push na `main`: instala com `npm ci`, roda `npm run check` e
 `npm test`, faz o build e publica `dist/`. Para o cliente usar o servidor
 WebSocket, crie a **variável** de repositório `VITE_WS_URL` (Settings, Secrets
 and variables, Actions, aba Variables) com o endereço `wss://` do servidor.
+
+O build também gera o PWA (`manifest.webmanifest`, `sw.js` e os ícones de
+`public/`). O GitHub Pages serve tudo por HTTPS, que é requisito para o
+service worker e para a instalação. Depois de um deploy, quem está com a mesa
+aberta vê o aviso "Há uma versão nova da mesa" e escolhe quando atualizar.
 
 ### Servidor (qualquer host de Node ou contêiner)
 

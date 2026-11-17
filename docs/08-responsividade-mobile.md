@@ -81,7 +81,13 @@ Vinte cartas cabem em 360px com o índice de cada uma visível.
   Ela quebra em mais de uma linha quando há muitos adversários, e os alvos
   ficam com pelo menos 52px de altura no celular, um tamanho bom para o dedo.
 
-## 8.7 Toque
+## 8.7 Menu e entrada em telas baixas
+
+O menu da mesa rola por dentro quando não cabe na altura disponível (celular
+deitado). Na tela de entrada, a linha de opções (modo de tempo real, cor da
+mesa, idioma e instalar app) quebra em duas linhas no celular estreito.
+
+## 8.8 Toque
 
 - `touch-action: none` no palco e nas cartas: o navegador não rola nem dá zoom
   durante o arrasto. A lista de jogadores é a exceção (`pan-x`), para rolar
@@ -93,7 +99,7 @@ Vinte cartas cabem em 360px com o índice de cada uma visível.
 - `viewport-fit=cover` com `env(safe-area-inset-*)`: nada interativo fica
   embaixo do entalhe ou da barra de gestos.
 
-## 8.8 Como testar
+## 8.9 Como testar
 
 Teste pelo menos 360x640, 640x360, 768x1024 e 1440x900. Coloque cartas nos
 quatro cantos da mesa em um tamanho e confira nos outros; gire a tela com

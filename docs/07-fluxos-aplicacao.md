@@ -40,10 +40,44 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Botões Valor e Naipe | Ordenam a sua mão |
 | Seletor Aberta/Fechada | Define como as cartas da mão e do monte chegam à mesa |
 
-Menu: adicionar baralho, remover cartas do monte, reiniciar (tudo volta ao
-monte), cor da mesa (feltro verde ou vinho), adversários (leques de cartas,
-o padrão, ou etiquetas), som, idioma, ajuda e sair. A cor da mesa também pode ser escolhida
+Menu: adicionar baralho, remover um baralho, remover cartas do monte,
+reiniciar (tudo volta ao monte), reiniciar com um baralho original, cor da mesa
+(feltro verde ou vinho), adversários (leques de cartas, o padrão, ou
+etiquetas), som, idioma, ajuda, instalar app e sair. A cor da mesa também pode ser escolhida
 na tela de entrada. As duas escolhas de visual valem só para quem escolheu.
+
+### Baralhos no monte
+
+- **Adicionar baralho:** 52 cartas novas entram no monte, que é embaralhado.
+- **Remover um baralho:** sai do monte uma cópia de cada carta. Uma carta com
+  uma cópia só nunca sai, então a mesa mantém pelo menos um baralho (com um
+  baralho só, a opção fica desabilitada). Se as cópias extras de alguma carta
+  estiverem na mesa ou nas mãos, ela fica, e o aviso diz quantas ficaram.
+- **Remover cartas do monte:** por valor ou naipe (por exemplo, para truco).
+- **Reiniciar jogo:** tudo volta ao monte, com a composição atual.
+- **Reiniciar com um baralho original:** tudo sai da mesa e das mãos, e o
+  monte volta a ser um único baralho de 52 cartas, embaralhado. Desfaz baralhos
+  adicionados e cartas removidas.
+
+Todas pedem confirmação e valem para a sala inteira.
+
+### Instalar o app
+
+A mesa é um PWA: pode ser instalada como app no celular e no computador, e
+abre pelo ícone, em tela cheia e sem a barra do navegador. A opção "Instalar
+app" fica no menu da mesa e na tela de entrada, e some quando o app já está
+aberto como app instalado.
+
+- Chrome, Edge e Android: a opção abre o pedido de instalação do navegador.
+  A faixa automática que o Chrome mostra no celular é suprimida, para não
+  aparecer por cima da mesa no meio do jogo.
+- iPhone e iPad (Safari): abre o passo a passo (Compartilhar, Adicionar à Tela
+  de Início), porque o Safari não oferece instalação direta pela página.
+- Outros navegadores: abre o caminho pelo menu do navegador.
+
+Quando sai uma versão nova, aparece o aviso "Há uma versão nova da mesa" com o
+botão Atualizar. A página não recarrega sozinha, para não interromper uma
+jogada; ao atualizar, o jogador volta ao mesmo assento.
 
 ### Entregar carta pela barra ampliada
 

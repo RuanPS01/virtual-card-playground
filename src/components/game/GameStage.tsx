@@ -21,6 +21,8 @@ import FxLayer, { type FxLayerHandle } from './effects/FxLayer';
 import FeltBackground from './effects/FeltBackground';
 import HandTray from './HandTray';
 import HelpDialog from './HelpDialog';
+import { useInstallFlow } from '@/hooks/useInstallFlow';
+import InstallDialog from './InstallDialog';
 import PlayerReachBar from './PlayerReachBar';
 import TopBar from './TopBar';
 
@@ -32,10 +34,16 @@ interface GameStageProps {
   view: RoomView;
 }
 
-type Confirm = { kind: 'addDeck' } | { kind: 'reset' } | { kind: 'leave' } | { kind: 'removePlayer'; player: PlayerView };
+type Confirm =
+  | { kind: 'addDeck' }
+  | { kind: 'removeDeck' }
+  | { kind: 'reset' }
+  | { kind: 'resetOriginal' }
+  | { kind: 'leave' }
+  | { kind: 'removePlayer'; player: PlayerView };
 
 const NO_HOLDERS: ReadonlyMap<string, string> = new Map();
-const SHUFFLE_EVENTS = new Set(['shuffleDeck', 'reset', 'addDeck']);
+const SHUFFLE_EVENTS = new Set(['shuffleDeck', 'reset', 'resetToOneDeck', 'addDeck']);
 
 const GameStage = ({ room, view }: GameStageProps) => {
   const t = useT();
@@ -50,6 +58,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const installFlow = useInstallFlow();
 
   const registry = useMemo<SpriteRegistry>(() => new Map(), []);
 
@@ -121,6 +130,9 @@ const GameStage = ({ room, view }: GameStageProps) => {
   const me = view.players.find((player) => player.id === view.me);
   const others = useMemo(() => view.players.filter((player) => player.id !== view.me), [view.players, view.me]);
   const opponentsView = useOpponentsView();
+  // Total de cartas na sala. O monte e as mãos chegam só como contagem.
+  const totalCards =
+    view.deckCount + view.cards.filter((card) => card.zone !== 'hand').length + view.players.reduce((sum, player) => sum + player.handCount, 0);
   const shuffleTick = view.last && SHUFFLE_EVENTS.has(view.last.type) ? view.last.rev : 0;
 
   // O texto fica guardado depois de fechar: o diálogo ainda está na tela
@@ -138,6 +150,8 @@ const GameStage = ({ room, view }: GameStageProps) => {
     if (!confirm) return;
     if (confirm.kind === 'addDeck') void act({ type: 'addDeck' });
     if (confirm.kind === 'reset') void act({ type: 'reset' });
+    if (confirm.kind === 'removeDeck') void act({ type: 'removeDeck' });
+    if (confirm.kind === 'resetOriginal') void act({ type: 'resetToOneDeck' });
     if (confirm.kind === 'removePlayer') void act({ type: 'removePlayer', playerId: confirm.player.id });
     if (confirm.kind === 'leave') void room.leave();
     setConfirm(null);
@@ -173,7 +187,11 @@ const GameStage = ({ room, view }: GameStageProps) => {
               onAddDeck={() => setConfirm({ kind: 'addDeck' })}
               onRemoveCards={() => setRemoveOpen(true)}
               onReset={() => setConfirm({ kind: 'reset' })}
+              onRemoveDeck={() => setConfirm({ kind: 'removeDeck' })}
+              canRemoveDeck={totalCards > 52}
+              onResetOriginal={() => setConfirm({ kind: 'resetOriginal' })}
               onHelp={() => setHelpOpen(true)}
+              onInstall={installFlow.installed ? undefined : () => void installFlow.install()}
               onLeave={() => setConfirm({ kind: 'leave' })}
             />
 
@@ -225,7 +243,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
         title={confirmCopy.current.title}
         description={confirmCopy.current.text}
         confirmText={confirmCopy.current.ok}
-        destructive={confirm?.kind === 'leave' || confirm?.kind === 'removePlayer' || confirm?.kind === 'reset'}
+        destructive={confirm?.kind === 'leave' || confirm?.kind === 'removePlayer' || confirm?.kind === 'reset' || confirm?.kind === 'resetOriginal'}
         onConfirm={runConfirm}
       />
 
@@ -236,6 +254,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
       />
 
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+      <InstallDialog open={installFlow.helpOpen} method={installFlow.method} onOpenChange={installFlow.setHelpOpen} />
     </StageContext.Provider>
   );
 };

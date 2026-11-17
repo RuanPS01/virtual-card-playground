@@ -44,6 +44,8 @@ Verbo ou destino em camelCase. A carta de origem vem sempre em `src`:
 | `movePile` | Move um grupo |
 | `setPileMode` | `fan` (leque) ou `stack` (pilha) |
 | `shuffleDeck`, `addDeck`, `removeCards`, `reset` | Monte |
+| `removeDeck` | Tira do monte uma cópia de cada carta (desfaz um `addDeck`). Nunca tira a última cópia; cópias fora do monte ficam e são contadas em `skipped` |
+| `resetToOneDeck` | Recolhe tudo e deixa só um baralho original de 52 cartas, com ids novos |
 | `sortHand` | Ordena a própria mão por `rank` ou `suit` |
 | `removePlayer` | Remove jogador desconectado; a mão volta ao monte |
 
@@ -55,7 +57,8 @@ zona é `hand`, id do grupo quando é `pile`, `null` nas demais.
 ## 5.6 Códigos de erro
 
 `snake_case`, listados em `ErrorCode` ([`shared/types.ts`](../shared/types.ts)).
-Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `not_your_card`,
+Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `single_deck`,
+`deck_incomplete`, `not_your_card`,
 `card_not_found`, `room_not_found`, `offline` e outros.
 
 ## 5.7 Chaves de i18n
@@ -71,6 +74,7 @@ Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `not_your_card`,
 | `felt.` | Nomes das cores da mesa (`felt.green`, `felt.wine`) |
 | `opponents.` | Visões dos adversários (`opponents.badges`, `opponents.fans`) |
 | `reach.` | Barra de jogadores ampliada durante o arrasto |
+| `pwa.`, `install.` | Avisos do app instalável e passo a passo de instalação |
 | `confirm.<tipo>.title`, `.text`, `.ok` | Diálogos de confirmação |
 | `toast.` | Avisos |
 | `error.` | Códigos de erro |

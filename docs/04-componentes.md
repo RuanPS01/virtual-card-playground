@@ -27,7 +27,8 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | [`PlayerBadge`](../src/components/game/PlayerBadge.tsx) | Visão compacta (alternativa) de outro jogador: cor do assento, nome, mini versos, contagem. Alvo de soltura `player:ID`. Mostra botão de remover quando desconectado e recebe `onRemove`. Exporta `OpponentProps`, comum às duas visões de adversário |
 | [`OpponentFan`](../src/components/game/OpponentFan.tsx) | Visão padrão do adversário: a mão dele em mini leque de versos (até 12 visíveis) com o nome embaixo, sem caixa em volta. Mesmas props e mesmo papel da `PlayerBadge` |
 | [`PlayerReachBar`](../src/components/game/PlayerReachBar.tsx) | Barra de jogadores ampliada que aparece durante o arrasto perto do topo. Usa `PlayerBadge` ou `OpponentFan` (conforme a visão escolhida) com `anchor={false}`, para as cartas entregues voarem até a barra superior, e não até ela |
-| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover cartas, reiniciar, cor da mesa, adversários, som, idioma, ajuda, sair |
+| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover um baralho (desabilitado com um baralho só), remover cartas, reiniciar, reiniciar com um baralho original, cor da mesa, adversários, som, idioma, ajuda, instalar app (some quando já instalado), sair. Rola por dentro quando não cabe na altura |
+| [`InstallDialog`](../src/components/game/InstallDialog.tsx) | Passo a passo de instalação para quem não tem o pedido direto do navegador (iPhone e outros). Usado pelo menu e pela tela de entrada |
 | [`HandTray`](../src/components/game/HandTray.tsx) | Bandeja inferior: nome, ordenar por valor ou naipe, seletor Aberta/Fechada, contador e embaralhar do monte. Expõe as âncoras `handRef` e `deckRef` |
 | [`CardLayer`](../src/components/game/CardLayer.tsx) | Camada única com o monte, todas as cartas visíveis (em `AnimatePresence`) e as etiquetas de grupo. Aceita `children` para sobreposições que ficam entre as cartas da mesa e a carta segurada (a `PlayerReachBar`) |
 | [`CardSprite`](../src/components/game/CardSprite.tsx) | Uma carta: persegue o alvo com mola, vira, inclina no hover, mostra quem a está arrastando, sai voando para o destino |
@@ -48,6 +49,7 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | [`useSpriteMotion`](../src/hooks/useSpriteMotion.ts) | `x`, `y`, `rotate`, `scale` | Valores de movimento de um sprite, registrados para o arrasto |
 | [`useLiveDrags`](../src/hooks/useLiveDrags.ts) | mapa de arrastos remotos | Recebe a posição do que os outros estão arrastando |
 | [`useViewEffects`](../src/hooks/useViewEffects.ts) | nada | Transforma `view.last` em som, partícula, texto, tremor e toasts de entrada e saída de jogadores |
+| [`useInstallFlow`](../src/hooks/useInstallFlow.ts) | `installed`, `method`, `install`, `helpOpen`, `setHelpOpen` | Instalar o app: abre o pedido do navegador ou, sem ele, o `InstallDialog` |
 | [`useCardTransitions`](../src/hooks/useCardTransitions.ts) | `spawns`, `exitLookup` | De onde uma carta nova surge (monte, etiqueta de quem jogou) e para onde uma carta removida voa |
 | [`use-mobile`](../src/hooks/use-mobile.tsx), [`use-toast`](../src/hooks/use-toast.ts) | | Herdados do shadcn/ui, não usados pelo jogo |
 
@@ -62,6 +64,7 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | [`lib/i18n.ts`](../src/lib/i18n.ts) | `t`, `useT`, `setLocale`, `getLocale` |
 | [`lib/sfx.ts`](../src/lib/sfx.ts) | `sfx.pick`, `drop`, `deal`, `flip`, `stack`, `shuffle`, `fanfare`, `join`, `leave`, `error`, `tap`; `useMuted`, `setMuted` |
 | [`lib/tokens.ts`](../src/lib/tokens.ts) | `tokenColor` |
+| [`lib/pwa.ts`](../src/lib/pwa.ts) | `registerPwa` (service worker, só no build de produção, com aviso de versão nova), `promptInstall`, `useInstallState` (instalado? pedido do navegador, iPhone ou manual) |
 | [`lib/preference.ts`](../src/lib/preference.ts) | `createPreference(chave, valores, padrão, efeito?)`: preferência do jogador no navegador, com hook `useValue`. Base de `felt.ts` e `opponentsView.ts` |
 | [`lib/felt.ts`](../src/lib/felt.ts) | `FELTS`, `useFelt`, `setFelt`, `getFelt`: cor da mesa escolhida pelo jogador |
 | [`lib/opponentsView.ts`](../src/lib/opponentsView.ts) | `OPPONENT_VIEWS`, `useOpponentsView`, `setOpponentsView`: adversários como leques (padrão) ou etiquetas |
