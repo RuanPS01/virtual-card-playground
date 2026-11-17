@@ -3,7 +3,7 @@
 
 import { randomBytes } from 'node:crypto';
 import type { WebSocket } from 'ws';
-import { addPlayer, applyAction, createRoomState, removePlayer, setConnected } from '../shared/engine';
+import { addPlayer, applyAction, createRoomState, normalizeState, removePlayer, setConnected } from '../shared/engine';
 import { newId, newRoomCode } from '../shared/ids';
 import type { CloseReason, ServerMessage } from '../shared/protocol';
 import type { Action, ErrorCode, LiveMessage, RoomState } from '../shared/types';
@@ -24,6 +24,12 @@ export interface Seat {
 
 type Joined = { ok: true; seat: Seat; token: string } | { ok: false; error: ErrorCode };
 
+/** Formato do arquivo de snapshot. Os sockets não entram: eles morrem com o processo. */
+export interface Snapshot {
+  savedAt: number;
+  rooms: Array<{ state: RoomState; tokens: Array<[string, string]> }>;
+}
+
 export const send = (socket: WebSocket, message: ServerMessage): void => {
   if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(message));
 };
@@ -36,7 +42,33 @@ export class RoomManager {
     private readonly maxRooms: number,
   ) {}
 
+  /** Houve mudança desde o último snapshot. */
+  dirty = false;
+
   get size(): number {
+    return this.rooms.size;
+  }
+
+  snapshot(): Snapshot {
+    this.dirty = false;
+    return {
+      savedAt: Date.now(),
+      rooms: [...this.rooms.values()].map((room) => ({ state: room.state, tokens: [...room.tokens] })),
+    };
+  }
+
+  /**
+   * Recarrega as salas salvas. Todos voltam como desconectados: quando os
+   * navegadores reconectarem, o "resume" com o token os coloca de volta no
+   * mesmo assento, com a mesma mão.
+   */
+  restore(data: Snapshot, now = Date.now()): number {
+    for (const saved of data?.rooms ?? []) {
+      let state = normalizeState(saved.state);
+      if (!state || this.rooms.has(state.roomId)) continue;
+      for (const playerId of Object.keys(state.players)) state = setConnected(state, playerId, false);
+      this.rooms.set(state.roomId, { state, sockets: new Map(), tokens: new Map(saved.tokens), emptySince: now });
+    }
     return this.rooms.size;
   }
 
@@ -106,6 +138,7 @@ export class RoomManager {
     if (socket) send(socket, { t: 'closed', reason: 'left' });
     if (Object.keys(room.state.players).length === 0) {
       this.rooms.delete(seat.roomId);
+      this.dirty = true;
       return;
     }
     this.markEmpty(room);
@@ -130,6 +163,7 @@ export class RoomManager {
     for (const [roomId, room] of this.rooms) {
       if (room.emptySince !== null && now - room.emptySince > this.ttlMs) {
         this.rooms.delete(roomId);
+        this.dirty = true;
         removed++;
       }
     }
@@ -180,6 +214,7 @@ export class RoomManager {
   }
 
   private broadcast(room: Room, except?: string): void {
+    this.dirty = true;
     for (const [playerId, socket] of room.sockets) {
       if (playerId === except) continue;
       send(socket, { t: 'state', view: viewFor(room.state, playerId) });

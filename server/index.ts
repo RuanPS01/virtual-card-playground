@@ -4,7 +4,10 @@
 //   ALLOWED_ORIGINS  origens aceitas, separadas por vírgula (padrão: qualquer)
 //   ROOM_TTL_MIN     minutos que uma sala sem ninguém conectado sobrevive (padrão 30)
 //   MAX_ROOMS        teto de salas simultâneas (padrão 500)
+//   ROOMS_FILE       arquivo JSON onde as salas são salvas para sobreviver a um
+//                    reinício ou deploy (padrão: nenhum, só memória)
 
+import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { normalizeRoomCode } from '../shared/ids';
@@ -14,6 +17,7 @@ import { RoomManager, send, type Seat } from './rooms';
 const PORT = Number(process.env.PORT ?? 8787);
 const ROOM_TTL_MS = Number(process.env.ROOM_TTL_MIN ?? 30) * 60_000;
 const MAX_ROOMS = Number(process.env.MAX_ROOMS ?? 500);
+const ROOMS_FILE = process.env.ROOMS_FILE ?? '';
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? '')
   .split(',')
   .map((origin) => origin.trim())
@@ -24,6 +28,27 @@ const HEARTBEAT_MS = 30_000;
 const RATE_LIMIT = 80;
 
 const rooms = new RoomManager(ROOM_TTL_MS, MAX_ROOMS);
+
+const saveRooms = (): void => {
+  if (!ROOMS_FILE || !rooms.dirty) return;
+  try {
+    // Grava em arquivo temporário e renomeia: um desligamento no meio da
+    // escrita nunca deixa um JSON pela metade no lugar do bom.
+    writeFileSync(`${ROOMS_FILE}.tmp`, JSON.stringify(rooms.snapshot()));
+    renameSync(`${ROOMS_FILE}.tmp`, ROOMS_FILE);
+  } catch (error) {
+    console.error('[salas] falha ao salvar snapshot', error);
+  }
+};
+
+if (ROOMS_FILE) {
+  try {
+    const restored = rooms.restore(JSON.parse(readFileSync(ROOMS_FILE, 'utf8')));
+    console.log(`[salas] ${restored} sala(s) recuperada(s) de ${ROOMS_FILE}`);
+  } catch {
+    // Primeiro boot ou arquivo ilegível: começa vazio.
+  }
+}
 
 const http = createServer((req, res) => {
   if (req.url === '/healthz' || req.url === '/') {
@@ -157,6 +182,8 @@ const sweeper = setInterval(() => {
   if (removed > 0) console.log(`[salas] ${removed} sala(s) vazia(s) removida(s)`);
 }, 60_000);
 
+const saver = ROOMS_FILE ? setInterval(saveRooms, 10_000) : null;
+
 http.listen(PORT, () => {
   console.log(`[servidor] WebSocket em ws://localhost:${PORT}${WS_PATH}`);
 });
@@ -164,6 +191,8 @@ http.listen(PORT, () => {
 const shutdown = () => {
   clearInterval(heartbeat);
   clearInterval(sweeper);
+  if (saver) clearInterval(saver);
+  saveRooms();
   for (const socket of wss.clients) socket.close(1001, 'shutdown');
   http.close(() => process.exit(0));
   // Sockets que não fecharem a tempo não podem segurar o processo.
