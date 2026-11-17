@@ -2,105 +2,877 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
+/* ==========================================================================
+   Tokens. Toda cor do projeto sai daqui. Os valores são "H S% L%" sem o
+   hsl() em volta para o Tailwind poder aplicar opacidade (bg-card/80).
+   O jogo tem tema único, escuro: ver docs/03-1-identidade-visual.md.
+   ========================================================================== */
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 240 10% 3.9%;
+    color-scheme: dark;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --background: 224 36% 9%;
+    --foreground: 44 45% 93%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --card: 226 30% 14%;
+    --card-foreground: 44 45% 93%;
 
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
+    --popover: 226 32% 12%;
+    --popover-foreground: 44 45% 93%;
 
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --primary: 41 96% 58%;
+    --primary-foreground: 226 45% 10%;
 
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --secondary: 206 86% 58%;
+    --secondary-foreground: 226 45% 8%;
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --muted: 226 24% 21%;
+    --muted-foreground: 224 18% 72%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --accent: 226 26% 24%;
+    --accent-foreground: 44 45% 93%;
 
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --destructive: 3 80% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.75rem;
+    --border: 226 24% 32%;
+    --input: 226 24% 32%;
+    --ring: 41 96% 58%;
+
+    --radius: 0.7rem;
+
+    /* Sombra dura (sem desfoque) de painéis, botões e cartas. */
+    --shadow: 228 55% 4%;
+
+    /* Tinta do fundo animado da mesa. */
+    --felt-1: 172 62% 13%;
+    --felt-2: 158 58% 25%;
+    --felt-3: 246 48% 30%;
+
+    /* Cartas. */
+    --pc-paper: 44 56% 94%;
+    --pc-ink: 232 32% 17%;
+    --pc-red: 3 76% 52%;
+    --pc-edge: 232 38% 12%;
+    --pc-back: 232 54% 42%;
+    --pc-back-deep: 234 56% 30%;
+    --pc-shine: 0 0% 100%;
+
+    /* Cor de cada assento (etiquetas de jogador e arrasto ao vivo). */
+    --seat-0: 41 96% 58%;
+    --seat-1: 206 86% 62%;
+    --seat-2: 3 80% 66%;
+    --seat-3: 140 60% 55%;
+    --seat-4: 268 80% 72%;
+    --seat-5: 328 80% 70%;
+    --seat-6: 182 70% 55%;
+    --seat-7: 22 92% 62%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
 
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
   body {
     @apply bg-background text-foreground font-sans;
-    font-family: 'Inter', sans-serif;
+    /* A página nunca rola: o jogo ocupa a tela e a entrada rola por dentro. */
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    /* A fonte só existe em um peso. Sem isto o navegador "engrossa" o texto
+       por conta própria onde houver font-bold e borra os pixels. */
+    font-synthesis: none;
   }
 }
 
-.card-shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-  transition: box-shadow 0.3s cubic-bezier(.25, .8, .25, 1);
+@layer components {
+  /* ------------------------------------------------------------------------
+     Palco
+     ------------------------------------------------------------------------ */
+  .stage {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: hsl(var(--background));
+    user-select: none;
+    -webkit-user-select: none;
+    /* O navegador não deve rolar nem dar zoom durante um arrasto de carta. */
+    touch-action: none;
+  }
+
+  .stage-shake {
+    position: absolute;
+    inset: 0;
+  }
+
+  .stage-bg {
+    position: absolute;
+    inset: 0;
+    /* Aparece quando não há WebGL e enquanto o shader não desenhou. */
+    background: radial-gradient(ellipse at 50% 40%, hsl(var(--felt-2)), hsl(var(--felt-1)) 62%, hsl(var(--background)));
+  }
+
+  .stage-bg-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+  }
+
+  .stage-content {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    /* Entalhe e barra de gestos: nada interativo fica embaixo deles. */
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom))
+      max(6px, env(safe-area-inset-left));
+  }
+
+  /* Linhas de varredura e vinheta de monitor antigo, por cima de tudo. */
+  .stage-crt {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    background:
+      repeating-linear-gradient(to bottom, transparent 0 2px, hsl(var(--shadow) / 0.14) 2px 3px),
+      radial-gradient(ellipse at center, transparent 58%, hsl(var(--shadow) / 0.6) 100%);
+  }
+
+  .panel {
+    border: 2px solid hsl(var(--border));
+    border-radius: 16px;
+    background: hsl(var(--card) / 0.93);
+    box-shadow: 0 5px 0 hsl(var(--shadow) / 0.7);
+  }
+
+  /* ------------------------------------------------------------------------
+     Barra superior
+     ------------------------------------------------------------------------ */
+  .hud-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .hud-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 10px;
+    flex-shrink: 0;
+    font-size: 16px;
+    line-height: 1;
+    color: hsl(var(--foreground));
+    border: 2px solid hsl(var(--border));
+    border-radius: 10px;
+    background: hsl(var(--card) / 0.92);
+    box-shadow: 0 3px 0 hsl(var(--shadow) / 0.7);
+  }
+
+  button.hud-pill {
+    transition:
+      transform 80ms,
+      box-shadow 80ms;
+  }
+
+  button.hud-pill:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 hsl(var(--shadow) / 0.7);
+  }
+
+  .hud-players {
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    /* Folga para a sombra dura não ser cortada pelo overflow. */
+    padding-bottom: 3px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    /* A lista de jogadores é o único ponto que rola com o dedo. */
+    touch-action: pan-x;
+  }
+
+  .hud-players::-webkit-scrollbar {
+    display: none;
+  }
+
+  .player-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    max-width: 13rem;
+    padding: 0 9px;
+    flex-shrink: 0;
+    font-size: 16px;
+    border: 2px solid hsl(var(--border));
+    border-radius: 10px;
+    background: hsl(var(--card) / 0.92);
+    box-shadow: 0 3px 0 hsl(var(--shadow) / 0.7);
+    transition:
+      transform 120ms,
+      border-color 120ms,
+      background-color 120ms;
+  }
+
+  .player-badge[data-hover='true'] {
+    border-color: hsl(var(--primary));
+    background: hsl(var(--accent));
+    transform: scale(1.08);
+  }
+
+  .player-badge[data-offline='true'] {
+    color: hsl(var(--muted-foreground));
+    border-style: dashed;
+  }
+
+  .player-dot {
+    width: 9px;
+    height: 9px;
+    flex-shrink: 0;
+    border-radius: 3px;
+    background: var(--seat);
+    box-shadow: 0 0 0 2px hsl(var(--shadow) / 0.5);
+  }
+
+  .mini-fan {
+    display: inline-flex;
+    padding-left: 5px;
+  }
+
+  .mini-card {
+    width: 9px;
+    height: 13px;
+    margin-left: -5px;
+    border: 1px solid hsl(var(--pc-edge));
+    border-radius: 2px;
+    background: hsl(var(--pc-back));
+  }
+
+  .player-remove {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    color: hsl(var(--destructive-foreground));
+    background: hsl(var(--destructive));
+  }
+
+  /* ------------------------------------------------------------------------
+     Mesa
+     ------------------------------------------------------------------------ */
+  .play-area {
+    position: relative;
+    display: grid;
+    place-items: center;
+    flex: 1 1 0;
+    min-height: 0;
+    border: 2px dashed hsl(var(--foreground) / 0.14);
+    border-radius: 14px;
+  }
+
+  .play-hint {
+    padding: 0 16px;
+    font-size: 18px;
+    text-align: center;
+    color: hsl(var(--foreground) / 0.5);
+  }
+
+  /* ------------------------------------------------------------------------
+     Faixa inferior: mão e monte
+     ------------------------------------------------------------------------ */
+  .hud-bottom {
+    display: flex;
+    align-items: stretch;
+    gap: 6px;
+  }
+
+  .hand-tray,
+  .deck-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 5px 6px 6px;
+    border: 2px solid hsl(var(--border));
+    border-radius: 14px;
+    background: hsl(var(--card) / 0.84);
+    box-shadow: 0 3px 0 hsl(var(--shadow) / 0.7);
+    transition:
+      border-color 120ms,
+      background-color 120ms;
+  }
+
+  .hand-tray {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .hand-tray[data-hover='true'],
+  .deck-slot[data-hover='true'] {
+    border-color: hsl(var(--primary));
+    background: hsl(var(--accent) / 0.92);
+  }
+
+  .tray-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    font-size: 15px;
+  }
+
+  .tray-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-weight: 700;
+  }
+
+  .tray-count {
+    min-width: 24px;
+    padding: 2px 6px;
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    text-align: center;
+    border-radius: 6px;
+    background: hsl(var(--muted));
+  }
+
+  /* Âncoras medidas por useStageMetrics. A altura acompanha a carta. */
+  .hand-slots {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: calc(var(--card-h) * var(--hand-scale) + 14px);
+  }
+
+  .deck-anchor {
+    width: calc(var(--card-w) + 8px);
+    height: calc(var(--card-h) * var(--hand-scale) + 14px);
+  }
+
+  .hand-empty {
+    padding: 0 8px;
+    font-size: 15px;
+    text-align: center;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .chip-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 7px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    color: hsl(var(--foreground));
+    border-radius: 7px;
+    background: hsl(var(--muted));
+    box-shadow: 0 2px 0 hsl(var(--shadow) / 0.7);
+    transition:
+      transform 80ms,
+      box-shadow 80ms;
+  }
+
+  .chip-btn:active:not(:disabled) {
+    transform: translateY(2px);
+    box-shadow: none;
+  }
+
+  .chip-btn:disabled {
+    opacity: 0.45;
+  }
+
+  .chip-btn[data-active='true'] {
+    color: hsl(var(--secondary-foreground));
+    background: hsl(var(--secondary));
+  }
+
+  .chip-btn svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+  }
+
+  /* Tela muito estreita: os botões de ordenar ficam só com o ícone. */
+  @media (max-width: 420px) {
+    .chip-label {
+      display: none;
+    }
+  }
+
+  /* Altura curta (celular deitado): a mão fica recolhida, com a base das
+     cartas para fora da tela, e o monte vai para o lado dos controles. */
+  .stage[data-compact='true'] .hand-slots {
+    height: calc(var(--card-h) * 0.62);
+  }
+
+  .stage[data-compact='true'] .deck-slot {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .stage[data-compact='true'] .deck-slot .tray-head {
+    flex-direction: column;
+    justify-content: center;
+    height: auto;
+  }
+
+  .stage[data-compact='true'] .deck-anchor {
+    height: auto;
+  }
+
+  /* ------------------------------------------------------------------------
+     Camada de cartas
+     ------------------------------------------------------------------------ */
+  .card-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    /* A camada cobre a tela inteira mas não captura cliques: só os sprites. */
+    pointer-events: none;
+  }
+
+  .card-layer > * {
+    pointer-events: auto;
+  }
+
+  .pc-sprite {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    will-change: transform;
+  }
+
+  .pc-sprite[data-held='true'] {
+    cursor: grabbing;
+  }
+
+  /* Sombra dura deslocada. Um elemento próprio custa bem menos que
+     filter: drop-shadow em cem cartas de uma vez. */
+  .pc-shadow {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.42em;
+    background: hsl(var(--shadow) / 0.42);
+    transform: translate(var(--shx, 0), var(--shy, 0.3em));
+    transition: transform 160ms ease-out;
+  }
+
+  .pc-bob {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    animation: pc-bob 4.4s ease-in-out infinite;
+    animation-delay: var(--bob-delay, 0s);
+  }
+
+  /* Carta segurada ou empilhada não flutua: o balanço atrapalharia a leitura. */
+  .pc-sprite[data-held='true'] .pc-bob,
+  .pc-sprite[data-zone='pile'] .pc-bob {
+    animation: none;
+  }
+
+  .pc-tilt {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform: perspective(40em) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition:
+      transform 160ms ease-out,
+      translate 140ms ease-out;
+  }
+
+  .pc-flipper {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    /* Passa um pouco do ponto e volta: a virada tem "estalo". */
+    transition: transform 340ms cubic-bezier(0.34, 1.45, 0.64, 1);
+  }
+
+  .pc-sprite[data-face='down'] .pc-flipper {
+    transform: rotateY(180deg);
+  }
+
+  .pc-face {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border: 0.12em solid hsl(var(--pc-edge));
+    border-radius: 0.42em;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .pc-front {
+    color: hsl(var(--pc-ink));
+    background: hsl(var(--pc-paper));
+  }
+
+  .pc-front[data-red='true'] {
+    color: hsl(var(--pc-red));
+  }
+
+  .pc-index {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 1em;
+    font-weight: 700;
+    line-height: 0.9;
+  }
+
+  .pc-index-tl {
+    top: 0.22em;
+    left: 0.24em;
+  }
+
+  .pc-index-br {
+    right: 0.24em;
+    bottom: 0.22em;
+    transform: rotate(180deg);
+  }
+
+  .pc-rank {
+    font-size: 1.3em;
+    letter-spacing: -0.06em;
+  }
+
+  .pc-suit-s {
+    width: 0.82em;
+    height: 0.82em;
+    margin-top: 0.1em;
+  }
+
+  .pc-center {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  .pc-suit-l {
+    width: 2.2em;
+    height: 2.2em;
+  }
+
+  .pc-suit-xl {
+    width: 2.9em;
+    height: 2.9em;
+  }
+
+  .pc-suit-m {
+    width: 1.1em;
+    height: 1.1em;
+  }
+
+  .pc-court {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1em;
+    width: 2.7em;
+    height: 3.9em;
+    border: 0.1em solid currentColor;
+    border-radius: 0.3em;
+    background: hsl(var(--pc-ink) / 0.07);
+  }
+
+  .pc-court > span {
+    font-size: 2.1em;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .pc-back {
+    transform: rotateY(180deg);
+    background:
+      repeating-linear-gradient(45deg, transparent 0 0.36em, hsl(var(--pc-back-deep)) 0.36em 0.72em),
+      repeating-linear-gradient(-45deg, transparent 0 0.36em, hsl(var(--pc-back-deep) / 0.6) 0.36em 0.72em), hsl(var(--pc-back));
+  }
+
+  .pc-back-flat {
+    transform: none;
+  }
+
+  .pc-back-inner {
+    position: absolute;
+    inset: 0.3em;
+    border: 0.12em solid hsl(var(--pc-paper) / 0.85);
+    border-radius: 0.26em;
+  }
+
+  /* Brilho que acompanha o mouse. */
+  .pc-shine {
+    position: absolute;
+    inset: 0;
+    border-radius: 0.42em;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle at var(--sx, 50%) var(--sy, 0%), hsl(var(--pc-shine) / 0.38), transparent 58%);
+    transition: opacity 160ms;
+  }
+
+  @media (hover: hover) {
+    .pc-sprite:hover:not([data-held='true']) .pc-shine {
+      opacity: 1;
+    }
+
+    /* Carta da mão sobe ao passar o mouse, para dar para ler o índice. */
+    .pc-sprite[data-zone='hand']:hover:not([data-held='true']) .pc-tilt {
+      translate: 0 -14%;
+    }
+  }
+
+  /* Alvo de soltura em destaque. */
+  .pc-sprite[data-hover='true'] .pc-face {
+    box-shadow:
+      0 0 0 0.14em hsl(var(--primary)),
+      0 0 1.1em hsl(var(--primary) / 0.8);
+    overflow: visible;
+  }
+
+  /* Carta que outro jogador está movendo: contorno na cor do assento dele. */
+  .pc-sprite[data-remote='true'] .pc-face {
+    box-shadow: 0 0 0 0.16em var(--seat);
+  }
+
+  .pc-holder {
+    position: absolute;
+    top: -1.7em;
+    left: 50%;
+    padding: 1px 6px;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    color: hsl(var(--background));
+    border-radius: 6px;
+    background: var(--seat);
+    translate: -50% 0;
+  }
+
+  /* ------------------------------------------------------------------------
+     Monte
+     ------------------------------------------------------------------------ */
+  .deck-base {
+    position: absolute;
+    border-radius: 0.42em;
+    transition: box-shadow 120ms;
+  }
+
+  .deck-base[data-hover='true'] {
+    box-shadow:
+      0 0 0 0.16em hsl(var(--primary)),
+      0 0 1.1em hsl(var(--primary) / 0.8);
+  }
+
+  .deck-layer {
+    position: absolute;
+    inset: 0;
+  }
+
+  .deck-base[data-shuffle='true'] .deck-layer {
+    animation: deck-riffle 480ms ease-in-out both;
+    animation-delay: calc(var(--i) * 70ms);
+  }
+
+  .deck-empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    color: hsl(var(--muted-foreground));
+    border: 2px dashed hsl(var(--foreground) / 0.3);
+    border-radius: 0.42em;
+  }
+
+  /* ------------------------------------------------------------------------
+     Etiqueta de grupo
+     ------------------------------------------------------------------------ */
+  .pile-chip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    height: 26px;
+    padding: 0 7px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    border: 2px solid hsl(var(--border));
+    border-radius: 9px;
+    background: hsl(var(--card));
+    box-shadow: 0 2px 0 hsl(var(--shadow) / 0.7);
+    /* translate separado do transform, que o framer-motion controla. */
+    translate: -50% -50%;
+  }
+
+  .pile-chip[data-hover='true'] {
+    border-color: hsl(var(--primary));
+  }
+
+  .pile-chip[data-remote='true'] {
+    border-color: var(--seat);
+  }
+
+  .pile-chip-icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* ------------------------------------------------------------------------
+     Efeitos
+     ------------------------------------------------------------------------ */
+  .fx-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .fx-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .fx-text {
+    position: absolute;
+    font-size: 30px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow:
+      0 2px 0 hsl(var(--shadow)),
+      0 0 10px hsl(var(--shadow) / 0.6);
+    translate: -50% -50%;
+  }
+
+  .fx-text-gold {
+    color: hsl(var(--primary));
+  }
+
+  .fx-text-red {
+    color: hsl(var(--destructive));
+  }
+
+  .fx-text-blue {
+    color: hsl(var(--secondary));
+  }
+
+  /* ------------------------------------------------------------------------
+     Entrada
+     ------------------------------------------------------------------------ */
+  .lobby {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    background: hsl(var(--background));
+  }
+
+  .lobby .stage-bg,
+  .lobby .stage-crt {
+    position: fixed;
+  }
+
+  .lobby-fan {
+    position: relative;
+    height: 7.6em;
+    margin-bottom: 0.9em;
+    font-size: 15px;
+  }
+
+  .lobby-card {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 5em;
+    height: 7em;
+    margin-left: -2.5em;
+    transform: translateX(calc(var(--i) * 2.7em)) translateY(calc(var(--i) * var(--i) * 0.34em)) rotate(calc(var(--i) * 9deg));
+  }
+
+  .lobby-card .pc-face {
+    box-shadow: 0.1em 0.34em 0 hsl(var(--shadow) / 0.5);
+  }
 }
 
-.card-shadow:hover {
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+@keyframes pc-bob {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+
+  50% {
+    translate: 0 -2.4%;
+    rotate: 0.8deg;
+  }
 }
 
-.card-front {
-  backface-visibility: hidden;
-  transition: transform 0.6s;
-  transform-style: preserve-3d;
+@keyframes deck-riffle {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+
+  30% {
+    translate: -42% -8%;
+    rotate: -11deg;
+  }
+
+  65% {
+    translate: 34% -5%;
+    rotate: 9deg;
+  }
 }
 
-.card-back {
-  backface-visibility: hidden;
-  transition: transform 0.6s;
-  transform-style: preserve-3d;
-  transform: rotateY(180deg);
-}
-
-.card.flipped .card-front {
-  transform: rotateY(180deg);
-}
-
-.card.flipped .card-back {
-  transform: rotateY(0deg);
-}
-
-.dragging {
-  opacity: 0.8;
-  transform: scale(1.05);
-  z-index: 1000;
-}
-
-/* Glassmorphism para elementos da interface */
-.glass {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-}
-
-/* Efeito de mesa de feltro */
-.table-felt {
-  background-color: hsl(120, 30%, 25%);
-  background-image:
-    radial-gradient(rgba(0, 0, 0, 0.1) 15%,
-      transparent 16%),
-    radial-gradient(rgba(0, 0, 0, 0.1) 15%,
-      transparent 16%);
-  background-size: 8px 8px;
-  background-position: 0 0, 4px 4px;
+/* Quem pede menos movimento no sistema fica sem balanço e sem embaralhada
+   animada. O voo das cartas continua, porque ele informa o que aconteceu. */
+@media (prefers-reduced-motion: reduce) {
+  .pc-bob,
+  .deck-layer {
+    animation: none !important;
+  }
 }

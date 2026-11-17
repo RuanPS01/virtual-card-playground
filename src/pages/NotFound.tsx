@@ -1,24 +1,19 @@
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
+import { Link } from 'react-router-dom';
+import { buttonVariants } from '@/components/ui/button';
+import { useT } from '@/lib/i18n';
 
 const NotFound = () => {
-  const location = useLocation();
-
-  useEffect(() => {
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      location.pathname
-    );
-  }, [location.pathname]);
-
+  const t = useT();
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
-        <p className="text-xl text-gray-600 mb-4">Oops! Page not found</p>
-        <a href="/" className="text-blue-500 hover:text-blue-700 underline">
-          Return to Home
-        </a>
+    <div className="lobby">
+      <div className="panel relative z-10 w-full max-w-sm p-6 text-center">
+        <p className="text-5xl font-bold text-primary">404</p>
+        <h1 className="mt-2 text-xl font-bold">{t('notFound.title')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t('notFound.text')}</p>
+        {/* Link do roteador, e não <a href="/">: o app é servido em um subcaminho. */}
+        <Link to="/" className={buttonVariants({ className: 'mt-5 w-full' })}>
+          {t('notFound.back')}
+        </Link>
       </div>
     </div>
   );
