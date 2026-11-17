@@ -68,6 +68,7 @@ Cada um tem texto em `error.<código>` no i18n: `deck_empty`, `not_your_card`,
 | `hud.` | Barra superior |
 | `menu.` | Menu da mesa |
 | `hand.`, `deck.`, `table.`, `pile.`, `player.` | Partes da mesa |
+| `felt.` | Nomes das cores da mesa (`felt.green`, `felt.wine`) |
 | `confirm.<tipo>.title`, `.text`, `.ok` | Diálogos de confirmação |
 | `toast.` | Avisos |
 | `error.` | Códigos de erro |
@@ -80,7 +81,7 @@ Variáveis entre chaves: `t('toast.roomCreated', { room: 'K7M2QX' })`.
 ## 5.8 Chaves de armazenamento do navegador
 
 Prefixo `vcp.`: `vcp.session` (sessionStorage), `vcp.name`, `vcp.muted`,
-`vcp.locale` (localStorage).
+`vcp.locale` e `vcp.felt` (localStorage).
 
 ## 5.9 Chaves do registro de sprites
 

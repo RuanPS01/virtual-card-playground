@@ -5,7 +5,7 @@ computador ou do celular. Não há regras de nenhum jogo específico: a mesa
 oferece um baralho, a mão de cada jogador e uma área compartilhada, e os
 jogadores combinam entre si o que estão jogando.
 
-![Mesa no desktop](assets/mesa-desktop.png)
+![Mesa no desktop](assets/mesa-desktop.webp)
 
 ## Por onde começar
 

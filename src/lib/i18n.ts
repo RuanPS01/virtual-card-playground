@@ -66,6 +66,7 @@ const ptBR = {
   'menu.addDeck': 'Adicionar baralho',
   'menu.removeCards': 'Remover cartas do monte',
   'menu.reset': 'Reiniciar jogo',
+  'menu.felt': 'Cor da mesa',
   'menu.soundOn': 'Som: ligado',
   'menu.soundOff': 'Som: desligado',
   'menu.help': 'Como jogar',
@@ -79,6 +80,9 @@ const ptBR = {
   'hand.faceUp': 'Aberta',
   'hand.faceDown': 'Fechada',
   'hand.faceHint': 'Define se as cartas chegam à mesa abertas ou fechadas',
+
+  'felt.green': 'Verde',
+  'felt.wine': 'Vinho',
 
   'deck.shuffle': 'Embaralhar',
   'deck.empty': 'Vazio',
@@ -203,6 +207,7 @@ const en: Record<MessageKey, string> = {
   'menu.addDeck': 'Add a deck',
   'menu.removeCards': 'Remove cards from the deck',
   'menu.reset': 'Restart game',
+  'menu.felt': 'Table color',
   'menu.soundOn': 'Sound: on',
   'menu.soundOff': 'Sound: off',
   'menu.help': 'How to play',
@@ -216,6 +221,9 @@ const en: Record<MessageKey, string> = {
   'hand.faceUp': 'Face up',
   'hand.faceDown': 'Face down',
   'hand.faceHint': 'Sets whether cards land on the table face up or face down',
+
+  'felt.green': 'Green',
+  'felt.wine': 'Wine',
 
   'deck.shuffle': 'Shuffle',
   'deck.empty': 'Empty',

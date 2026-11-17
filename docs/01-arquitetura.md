@@ -85,6 +85,8 @@ src/
     ├── realtime/     Transportes (WebSocket e Firebase) e sessão
     ├── i18n.ts       Textos pt-BR e en
     ├── sfx.ts        Sons sintetizados
+    ├── felt.ts       Cor da mesa (verde ou vinho)
+    ├── feltTexture.ts Textura de tecido do feltro
     └── tokens.ts     Leitura dos tokens de cor em JS
 ```
 

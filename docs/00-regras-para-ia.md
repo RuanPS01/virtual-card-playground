@@ -112,7 +112,7 @@ Estas valem sempre, sem precisar pedir:
    Ver [08-responsividade-mobile.md](08-responsividade-mobile.md).
 5. **Nunca use cor hardcoded.** Use os tokens de [`src/index.css`](../src/index.css)
    (`bg-card`, `text-foreground`, `border-border`, `hsl(var(--primary))`). Isso
-   vale também para canvas e WebGL: leia o token com
+   vale também para canvas: leia o token com
    [`src/lib/tokens.ts`](../src/lib/tokens.ts). Ver
    [03-1-identidade-visual.md](03-1-identidade-visual.md).
 6. **Tema único, escuro.** O jogo não tem modo claro de propósito (a mesa é um

@@ -11,12 +11,13 @@
 
 | Retrato | Paisagem |
 |---|---|
-| ![Celular em pé](assets/mesa-celular-retrato.png) | ![Celular deitado](assets/mesa-celular-paisagem.png) |
+| ![Celular em pé](assets/mesa-celular-retrato.webp) | ![Celular deitado](assets/mesa-celular-paisagem.webp) |
 
 ## 8.2 Mesa normalizada
 
 A posição de uma carta na mesa é guardada como fração de 0 a 1 do **centro**
-da carta dentro da **área útil** da mesa (a área tracejada menos uma margem).
+da carta dentro da **área útil** da mesa (a área contornada pela linha do
+feltro, menos uma margem).
 Cada tela projeta essa fração no seu próprio tamanho
 ([`tableToStage`](../src/game/layout.ts)):
 

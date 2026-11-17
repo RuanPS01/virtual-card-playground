@@ -26,6 +26,7 @@ celular, em pé e deitado, é tão importante quanto no computador.
   cartas para outro jogador.
 - Arrasto visível para todos em tempo real.
 - Volta automática para a sala depois de recarregar ou perder a conexão.
+- Mesa com feltro verde ou vinho, como as mesas de jogo clássicas.
 - Interface em português do Brasil e em inglês.
 - Animações, efeitos e sons em todas as ações.
 

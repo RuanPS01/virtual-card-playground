@@ -20,9 +20,9 @@
 | Empacotador do servidor | esbuild | 0.21 | Gera `dist-server/index.cjs` com `ws` embutido |
 
 Áudio e efeitos não usam biblioteca: sons são sintetizados com a Web Audio API
-([`sfx.ts`](../src/lib/sfx.ts)), o fundo é um shader WebGL
-([`SwirlBackground`](../src/components/game/effects/SwirlBackground.tsx)) e as
-partículas são canvas 2D ([`FxLayer`](../src/components/game/effects/FxLayer.tsx)).
+([`sfx.ts`](../src/lib/sfx.ts)), a textura de tecido do feltro é desenhada uma
+vez em canvas 2D ([`feltTexture.ts`](../src/lib/feltTexture.ts)) e as
+partículas também são canvas 2D ([`FxLayer`](../src/components/game/effects/FxLayer.tsx)).
 
 ### Dependências removidas nesta versão
 

@@ -2,15 +2,18 @@
 
 ## 3.1.1 Direção
 
-A mesa tem estética de jogo de cartas em pixel art, com bastante "suco":
-fundo de tinta em redemoinho, cartas que flutuam e balançam, inclinação 3D ao
+A mesa imita uma **mesa clássica de baralho, coberta de feltro** verde ou
+vinho, e por cima dela as cartas e a interface têm estética de jogo em pixel
+art, com bastante "suco": cartas que flutuam e balançam, inclinação 3D ao
 passar o mouse, viradas com estalo, partículas e números que saltam. A
 referência é o tipo de sensação de jogos de cartas como Balatro (impacto,
 movimento contínuo, feedback em cada ação), mas o visual é próprio: cartas,
 cores, fundo e sons foram desenhados para este projeto, sem copiar arte,
 nome ou elementos de nenhum jogo.
 
-![Mesa no desktop](assets/mesa-desktop.png)
+| Feltro verde | Feltro vinho |
+|---|---|
+| ![Mesa verde](assets/mesa-desktop.webp) | ![Mesa vinho](assets/mesa-vinho-desktop.webp) |
 
 Princípios:
 
@@ -57,13 +60,27 @@ Todos em [`src/index.css`](../src/index.css), no formato `H S% L%` (sem
 
 | Token | Uso |
 |---|---|
-| `--felt-1`, `--felt-2`, `--felt-3` | As três tintas do fundo em redemoinho (shader) |
 | `--pc-paper` | Frente da carta |
 | `--pc-ink` | Naipes pretos e texto da carta |
 | `--pc-red` | Naipes vermelhos |
 | `--pc-edge` | Contorno da carta |
 | `--pc-back`, `--pc-back-deep` | Verso (padrão xadrez diagonal) |
 | `--pc-shine` | Brilho que segue o mouse |
+
+### Feltro
+
+Duas mesas, no tom das mesas de jogo clássicas. O verde é o padrão; o vinho
+redefine os tokens em `:root[data-felt='wine']`. Quem troca o atributo é
+[`src/lib/felt.ts`](../src/lib/felt.ts).
+
+| Token | Verde | Vinho | Uso |
+|---|---|---|---|
+| `--felt-green`, `--felt-wine` | `150 52% 22%` | `349 55% 23%` | Cor de cada pano (também nas amostras do seletor) |
+| `--felt-base` | `var(--felt-green)` | `var(--felt-wine)` | Cor do pano em uso |
+| `--felt-light` | `145 42% 33%` | `352 42% 34%` | Luz da luminária sobre o centro da mesa |
+| `--felt-dark` | `156 62% 8%` | `345 60% 8%` | Bordas escurecidas e cor da barra do navegador no celular |
+| `--felt-line` | `140 30% 62%` | `350 36% 66%` | Linha "impressa" no pano em volta da área de jogo e o texto de dica |
+| `--felt-thread-light`, `--felt-thread-dark` | branco e preto | iguais | Fios da textura. Neutros, porque a cor vem do pano por baixo |
 
 ### Assentos
 
@@ -73,12 +90,38 @@ jogador e no contorno da carta que ele está arrastando. Acesse com
 
 ### Cor fora do CSS
 
-Canvas e WebGL não enxergam classes. Use
-[`tokenColor('--primary', 0.5)`](../src/lib/tokens.ts) para uma string CSS e
-`tokenRgb('--felt-1')` para o vetor que o shader espera. Nunca escreva um
-`#hex` ou `rgb()` no código.
+Canvas não enxerga classes. Use
+[`tokenColor('--primary', 0.5)`](../src/lib/tokens.ts) para obter uma string
+CSS a partir do token. Nunca escreva um `#hex` ou `rgb()` no código.
 
-## 3.1.4 Tipografia
+## 3.1.4 Feltro da mesa
+
+O fundo imita o pano de uma mesa de jogo. Ele é montado em camadas de CSS
+(classe `.felt-bg`), da de baixo para a de cima:
+
+1. **cor do pano** (`--felt-base`);
+2. **luz da luminária**: elipse mais clara sobre o centro (`--felt-light`);
+3. **bordas escuras**: elipse que escurece os cantos (`--felt-dark`);
+4. **textura de tecido**: imagem repetida a cada 320px, gerada uma vez por
+   [`src/lib/feltTexture.ts`](../src/lib/feltTexture.ts).
+
+A textura tem três ingredientes, todos quase transparentes: manchas largas e
+médias (o pano nunca tem cor uniforme), grão fino ponto a ponto (a "penugem"
+do feltro) e fibras soltas, curtas e curvas, em todas as direções. Ela é
+repetível sem emenda (o que sai por uma borda entra pela oposta) e usa
+semente fixa, então sai igual em todo carregamento e em todo aparelho.
+
+Em volta da área de jogo há uma linha "impressa" no pano, como nas mesas de
+cassino: um traço contínuo e um filete interno mais fraco (`--felt-line`).
+
+A escolha entre verde e vinho é de cada jogador, fica no navegador
+(`vcp.felt`) e aparece no menu da mesa e na tela de entrada. Ela não muda a
+mesa dos outros jogadores.
+
+Não há linhas de varredura de monitor por cima da mesa: elas riscavam o feltro
+em faixas horizontais e tiravam a sensação de tecido.
+
+## 3.1.5 Tipografia
 
 | Item | Valor |
 |---|---|
@@ -96,7 +139,7 @@ Dentro da carta, o tamanho vem do sprite: `font-size` é 20% da largura da
 carta e todas as medidas internas são em `em`. A carta escala inteira, do
 celular ao desktop, sem regras próprias.
 
-## 3.1.5 Cartas
+## 3.1.6 Cartas
 
 - Proporção 5:7, cantos de `0.42em`.
 - Índice (valor e naipe) nos dois cantos, o de baixo girado 180 graus.
@@ -107,12 +150,12 @@ celular ao desktop, sem regras próprias.
 - Sombra: elemento próprio (`.pc-shadow`), deslocado para longe do centro da
   tela, como se a luz viesse do centro. Cresce quando a carta é levantada.
 
-## 3.1.6 Animações e efeitos
+## 3.1.7 Animações e efeitos
 
 | Efeito | Onde | Como |
 |---|---|---|
-| Fundo em redemoinho | Toda a tela | Shader WebGL em 1/5 da resolução, ampliado com `image-rendering: pixelated`, 30 quadros por segundo, pausa com a aba oculta |
-| Linhas de varredura e vinheta | Por cima de tudo | `.stage-crt`, gradientes CSS |
+| Feltro | Toda a tela, na mesa e na entrada | [`FeltBackground`](../src/components/game/effects/FeltBackground.tsx): cor do pano, luz da luminária, bordas escuras e textura de tecido. Estático |
+| Vinheta | Por cima de tudo | `.stage-crt`, gradiente radial |
 | Flutuação | Cartas da mesa e da mão | `@keyframes pc-bob`, cada carta com atraso próprio |
 | Inclinação 3D | Hover do mouse | Variáveis `--rx`, `--ry` escritas direto no elemento |
 | Brilho | Hover do mouse | Gradiente radial em `--sx`, `--sy` |
@@ -133,12 +176,11 @@ escolha fica no navegador.
 
 ### Movimento reduzido
 
-Com `prefers-reduced-motion: reduce`: sem fundo animado (fica um quadro
-parado), sem flutuação, sem embaralhada animada, sem partículas e sem tremor.
+Com `prefers-reduced-motion: reduce`: sem flutuação, sem embaralhada animada, sem partículas e sem tremor.
 O voo das cartas continua, porque ele informa o que aconteceu.
 
 ### Custo
 
-Os efeitos foram pensados para celular: o fundo roda em resolução baixa, o
-laço de partículas só existe enquanto há partícula viva, a sombra é um
+Os efeitos foram pensados para celular: o feltro é estático e sua textura é
+desenhada uma única vez, o laço de partículas só existe enquanto há partícula viva, a sombra é um
 elemento e não `filter`, e o arrasto não renderiza o React por quadro.

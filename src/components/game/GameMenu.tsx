@@ -3,9 +3,13 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { FELTS, setFelt, useFelt, type Felt } from '@/lib/felt';
 import { getLocale, setLocale, useT } from '@/lib/i18n';
 import { setMuted, useMuted } from '@/lib/sfx';
 
@@ -24,6 +28,7 @@ const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMe
   const t = useT();
   const muted = useMuted();
   const locale = getLocale();
+  const felt = useFelt();
 
   return (
     <DropdownMenu>
@@ -46,6 +51,22 @@ const GameMenu = ({ onAddDeck, onRemoveCards, onReset, onHelp, onLeave }: GameMe
           <RotateCcw className="size-4" />
           {t('menu.reset')}
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-muted-foreground">{t('menu.felt')}</DropdownMenuLabel>
+        <DropdownMenuRadioGroup value={felt} onValueChange={(value) => setFelt(value as Felt)}>
+          {FELTS.map((option) => (
+            <DropdownMenuRadioItem
+              key={option}
+              value={option}
+              className="gap-2"
+              // Mantém o menu aberto para comparar as duas mesas na hora.
+              onSelect={(event) => event.preventDefault()}
+            >
+              <span className="felt-swatch" data-felt={option} />
+              {t(`felt.${option}`)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onSelect={(event) => {

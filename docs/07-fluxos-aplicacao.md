@@ -38,7 +38,9 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Seletor Aberta/Fechada | Define como as cartas da mão e do monte chegam à mesa |
 
 Menu: adicionar baralho, remover cartas do monte, reiniciar (tudo volta ao
-monte), som, idioma, ajuda e sair.
+monte), cor da mesa (feltro verde ou vinho), som, idioma, ajuda e sair. A cor
+da mesa também pode ser escolhida na tela de entrada e vale só para quem
+escolheu.
 
 ## 7.4 Ciclo de uma ação
 
@@ -74,7 +76,7 @@ ninguém mais pode pegar aquela carta.
 Carta saindo da **mão** não é transmitida: mostrar o movimento entregaria de
 onde ela veio antes de ser jogada.
 
-![Arrasto visto por outro jogador](assets/arrasto-ao-vivo.png)
+![Arrasto visto por outro jogador](assets/arrasto-ao-vivo.webp)
 
 ## 7.6 Queda de conexão
 

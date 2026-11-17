@@ -5,7 +5,7 @@ computador ou no celular.
 
 Link: https://ruanps.com.br/virtual-card-playground
 
-![Mesa de cartas](docs/assets/mesa-desktop.png)
+![Mesa de cartas](docs/assets/mesa-desktop.webp)
 
 ## Rodando localmente
 

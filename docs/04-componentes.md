@@ -25,14 +25,15 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | [`GameStage`](../src/components/game/GameStage.tsx) | Tela do jogo. Monta barra, mesa e mão; liga `useCardDrag`, `useViewEffects`, `useCardTransitions`; provê `StageContext` (registro de sprites e API de efeitos) |
 | [`TopBar`](../src/components/game/TopBar.tsx) | Código da sala (toque copia o link de convite), indicador de reconexão, outros jogadores e menu |
 | [`PlayerBadge`](../src/components/game/PlayerBadge.tsx) | Etiqueta de outro jogador: cor do assento, nome, mini versos, contagem. Alvo de soltura `player:ID`. Mostra botão de remover quando desconectado |
-| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover cartas, reiniciar, som, idioma, ajuda, sair |
+| [`GameMenu`](../src/components/game/GameMenu.tsx) | Menu suspenso: adicionar baralho, remover cartas, reiniciar, cor da mesa, som, idioma, ajuda, sair |
 | [`HandTray`](../src/components/game/HandTray.tsx) | Bandeja inferior: nome, ordenar por valor ou naipe, seletor Aberta/Fechada, contador e embaralhar do monte. Expõe as âncoras `handRef` e `deckRef` |
 | [`CardLayer`](../src/components/game/CardLayer.tsx) | Camada única com o monte, todas as cartas visíveis (em `AnimatePresence`) e as etiquetas de grupo |
 | [`CardSprite`](../src/components/game/CardSprite.tsx) | Uma carta: persegue o alvo com mola, vira, inclina no hover, mostra quem a está arrastando, sai voando para o destino |
 | [`DeckStack`](../src/components/game/DeckStack.tsx) | O monte: camadas de volume, animação de embaralhar e a carta "fantasma" que se arrasta |
 | [`PileChip`](../src/components/game/PileChip.tsx) | Etiqueta de grupo: contagem, alça para mover o grupo, toque alterna pilha e leque |
 | [`CardFace`](../src/components/game/CardFace.tsx) | `CardFront`, `CardBack` e `SuitIcon` (naipes em SVG). Reaproveitado na entrada e no diálogo de remover cartas |
-| [`effects/SwirlBackground`](../src/components/game/effects/SwirlBackground.tsx) | Fundo animado em WebGL. Usado na mesa e na entrada |
+| [`effects/FeltBackground`](../src/components/game/effects/FeltBackground.tsx) | Fundo de feltro (verde ou vinho) com textura de tecido. Usado na mesa e na entrada |
+| [`FeltPicker`](../src/components/game/FeltPicker.tsx) | Duas amostras de cor para escolher o feltro. Usado na entrada; no jogo a escolha fica no `GameMenu` |
 | [`effects/FxLayer`](../src/components/game/effects/FxLayer.tsx) | Partículas e textos flutuantes, comandados por `ref` (`burst`, `text`) |
 
 ## 4.4 Hooks (`src/hooks/`)
@@ -58,7 +59,9 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 | [`lib/realtime/`](../src/lib/realtime/) | `connectRoom`, `transportKind`, tipos da conexão, sessão e link de convite |
 | [`lib/i18n.ts`](../src/lib/i18n.ts) | `t`, `useT`, `setLocale`, `getLocale` |
 | [`lib/sfx.ts`](../src/lib/sfx.ts) | `sfx.pick`, `drop`, `deal`, `flip`, `stack`, `shuffle`, `fanfare`, `join`, `leave`, `error`, `tap`; `useMuted`, `setMuted` |
-| [`lib/tokens.ts`](../src/lib/tokens.ts) | `tokenColor`, `tokenRgb` |
+| [`lib/tokens.ts`](../src/lib/tokens.ts) | `tokenColor` |
+| [`lib/felt.ts`](../src/lib/felt.ts) | `FELTS`, `useFelt`, `setFelt`, `getFelt`: cor da mesa escolhida pelo jogador |
+| [`lib/feltTexture.ts`](../src/lib/feltTexture.ts) | `feltTextureUrl`, `FELT_TILE`: textura de tecido gerada uma vez e reaproveitada |
 | [`lib/firebase.ts`](../src/lib/firebase.ts) | Instância do Realtime Database |
 
 ## 4.6 Componentes removidos nesta versão
@@ -68,3 +71,7 @@ Catálogo do que já existe. Antes de criar algo, procure aqui.
 substituídos pela camada única de sprites e pelo motor compartilhado. O diálogo
 "Leque ou Pilha?" deu lugar à etiqueta do grupo (`PileChip`), que alterna o
 modo com um toque.
+
+O fundo animado em WebGL (`effects/SwirlBackground`) foi substituído pelo
+feltro (`effects/FeltBackground`); ver
+[historico/2026-11-17-feltro-verde-e-vinho.md](historico/2026-11-17-feltro-verde-e-vinho.md).

@@ -6,7 +6,8 @@ import type { Rank, Suit } from '@shared/cards';
 import { normalizeRoomCode, ROOM_CODE_LENGTH } from '@shared/ids';
 import { MAX_NAME_LENGTH } from '@shared/types';
 import { CardFront } from '@/components/game/CardFace';
-import SwirlBackground from '@/components/game/effects/SwirlBackground';
+import FeltBackground from '@/components/game/effects/FeltBackground';
+import FeltPicker from '@/components/game/FeltPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -56,7 +57,7 @@ const RoomSetup = ({ busy, resumingRoom, transport, onJoinRoom, onCreateRoom }: 
 
   return (
     <div className="lobby">
-      <SwirlBackground />
+      <FeltBackground />
       <div className="stage-crt" aria-hidden="true" />
 
       <motion.div
@@ -146,6 +147,7 @@ const RoomSetup = ({ busy, resumingRoom, transport, onJoinRoom, onCreateRoom }: 
           <p>{t('lobby.hint')}</p>
           <div className="flex items-center gap-3">
             <span>{transport === 'ws' ? t('lobby.modeWs') : t('lobby.modeFirebase')}</span>
+            <FeltPicker />
             <button
               type="button"
               className="chip-btn"

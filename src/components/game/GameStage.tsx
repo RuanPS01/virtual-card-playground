@@ -17,7 +17,7 @@ import { t as translate, useT, type MessageKey } from '@/lib/i18n';
 import { sfx } from '@/lib/sfx';
 import CardLayer from './CardLayer';
 import FxLayer, { type FxLayerHandle } from './effects/FxLayer';
-import SwirlBackground from './effects/SwirlBackground';
+import FeltBackground from './effects/FeltBackground';
 import HandTray from './HandTray';
 import HelpDialog from './HelpDialog';
 import TopBar from './TopBar';
@@ -158,7 +158,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
         onContextMenu={(event) => event.preventDefault()}
       >
         <div ref={shakeRef} className="stage-shake">
-          <SwirlBackground />
+          <FeltBackground />
 
           <div className="stage-content">
             <TopBar
