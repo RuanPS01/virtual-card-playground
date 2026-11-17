@@ -24,6 +24,7 @@ import HandTray from './HandTray';
 import HelpDialog from './HelpDialog';
 import { useInstallFlow } from '@/hooks/useInstallFlow';
 import InstallDialog from './InstallDialog';
+import ManilhaDialog from './ManilhaDialog';
 import PlayerReachBar from './PlayerReachBar';
 import TopBar from './TopBar';
 
@@ -60,6 +61,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
   const [removeOpen, setRemoveOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const installFlow = useInstallFlow();
+  const [manilhaOpen, setManilhaOpen] = useState(false);
 
   const registry = useMemo<SpriteRegistry>(() => new Map(), []);
 
@@ -193,6 +195,8 @@ const GameStage = ({ room, view }: GameStageProps) => {
               onRemoveDeck={() => setConfirm({ kind: 'removeDeck' })}
               canRemoveDeck={totalCards > 52}
               onResetOriginal={() => setConfirm({ kind: 'resetOriginal' })}
+              onManilha={() => setManilhaOpen(true)}
+              manilhaLabel={t(`manilha.preset.${view.manilha.preset}`)}
               onHelp={() => setHelpOpen(true)}
               onInstall={installFlow.installed ? undefined : () => void installFlow.install()}
               onLeave={() => setConfirm({ kind: 'leave' })}
@@ -259,6 +263,12 @@ const GameStage = ({ room, view }: GameStageProps) => {
 
       <HelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
       <InstallDialog open={installFlow.helpOpen} method={installFlow.method} onOpenChange={installFlow.setHelpOpen} />
+      <ManilhaDialog
+        open={manilhaOpen}
+        current={view.manilha}
+        onOpenChange={setManilhaOpen}
+        onApply={(config) => void act({ type: 'setManilha', config })}
+      />
     </StageContext.Provider>
   );
 };

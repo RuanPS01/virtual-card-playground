@@ -17,6 +17,7 @@ interface RoomState {
   players: Record<string, PlayerState>;
   cards: Record<string, CardState>;
   piles: Record<string, PileState>;
+  manilha: ManilhaConfig;                 // ordem de manilha da sala
   last: ActionEvent | null;               // última ação (alimenta os efeitos)
 }
 
@@ -67,6 +68,12 @@ testes verificam isso.
   `manual` recupera a ordem manual. Cartas viradas para baixo não entram na
   ordenação (ficam no fim), para a posição não revelar o valor. Salas salvas
   sem `sort` voltam como `manual`.
+- `manilha` (`ManilhaConfig`, em [`shared/manilha.ts`](../shared/manilha.ts))
+  guarda `preset`, `ranks` (13 valores, do mais fraco ao mais forte), `suits`
+  (4 naipes), `manilhas` (cartas acima de tudo) e `vira`. Predefinições são
+  sempre recalculadas a partir do nome, no motor e na leitura do banco; só o
+  `custom` usa as listas recebidas, que precisam ser permutações completas e
+  sem cartas repetidas. Salas sem o campo voltam com `paulista`.
 - `sendPile` move o grupo inteiro numa ação só: ninguém vê o grupo pela
   metade. Ao unir grupos, o destino mantém posição, modo e ordenação, e as
   cartas do outro entram no fim da ordem manual.

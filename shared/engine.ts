@@ -7,6 +7,7 @@
 
 import { RANKS, SUITS, isRank, isSuit, rankWeight, suitWeight } from './cards';
 import { newId } from './ids';
+import { DEFAULT_MANILHA, sanitizeManilha } from './manilha';
 import { isPileSort } from './pileOrder';
 import {
   MAX_CARDS,
@@ -285,6 +286,13 @@ const run = (state: RoomState, actorId: string, action: Action, rng: Rng): Event
       return { to: { zone: 'pile', pileId: pile.id } };
     }
 
+    case 'setManilha': {
+      const config = sanitizeManilha(action.config);
+      if (!config) return 'bad_action';
+      state.manilha = config;
+      return {};
+    }
+
     case 'setPileSort': {
       const pile = state.piles[action.pileId];
       if (!pile) return 'pile_not_found';
@@ -497,7 +505,17 @@ export const applyAction = (
 // ---------------------------------------------------------------------------
 
 export const createRoomState = (roomId: string, rng: Rng = Math.random): RoomState => {
-  const state: RoomState = { v: 2, roomId, rev: 0, z: 0, players: {}, cards: {}, piles: {}, last: null };
+  const state: RoomState = {
+    v: 2,
+    roomId,
+    rev: 0,
+    z: 0,
+    players: {},
+    cards: {},
+    piles: {},
+    manilha: structuredClone(DEFAULT_MANILHA),
+    last: null,
+  };
   addDeckCards(state, rng);
   shuffleDeck(state, rng);
   return state;
@@ -573,6 +591,8 @@ export const normalizeState = (raw: unknown): RoomState | null => {
     players: {},
     cards: {},
     piles: {},
+    // Sala salva antes da configuração de manilha existir: vale o padrão.
+    manilha: sanitizeManilha(root.manilha) ?? structuredClone(DEFAULT_MANILHA),
     last: root.last && typeof root.last === 'object' ? (root.last as ActionEvent) : null,
   };
   for (const [id, value] of Object.entries(asRecord(root.players))) {

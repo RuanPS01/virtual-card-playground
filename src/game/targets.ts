@@ -111,6 +111,7 @@ export const computeTargets = ({ view, metrics: m, held, handGap, pileGap, live 
     const members = sortPile(
       view.cards.filter((card) => card.zone === 'pile' && card.pileId === pile.id),
       pile.mode === 'fan' ? pile.sort : 'manual',
+      view.manilha,
     );
     const drag = livePiles.get(pile.id);
     const center = drag ? tableToStage(m, drag.x, drag.y) : undefined;

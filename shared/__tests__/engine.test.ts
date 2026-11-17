@@ -309,6 +309,16 @@ describe('grupos', () => {
     expect(cardsIn(state, 'pile', otherPile)).toHaveLength(5);
   });
 
+  it('ordem de manilha é da sala: qualquer jogador muda e todos veem', () => {
+    let state = room();
+    expect(state.manilha.preset).toBe('paulista');
+    state = must(state, 'p2', { type: 'setManilha', config: { preset: 'vira', vira: '7' } as never });
+    expect(state.manilha).toMatchObject({ preset: 'vira', vira: '7' });
+    expect(state.manilha.manilhas.map((m) => m.rank)).toEqual(['Q', 'Q', 'Q', 'Q']);
+    expect(viewFor(state, 'p1').manilha).toEqual(state.manilha);
+    expect(applyAction(state, 'p1', { type: 'setManilha', config: { preset: 'custom' } as never })).toEqual({ ok: false, error: 'bad_action' });
+  });
+
   it('ordenação é guardada no grupo e valida o valor', () => {
     const { state: start, pileId } = fanOf(2);
     expect(start.piles[pileId].sort).toBe('manual');
@@ -482,6 +492,12 @@ describe('leitura do Firebase', () => {
     delete stored.last;
     for (const card of Object.values<Record<string, unknown>>(stored.cards)) delete card.owner;
     expect(normalizeState(stored)).toEqual(state);
+  });
+
+  it('sala salva antes da ordem de manilha existir volta com o padrão', () => {
+    const stored = JSON.parse(JSON.stringify(room()));
+    delete stored.manilha;
+    expect(normalizeState(stored)!.manilha).toMatchObject({ preset: 'paulista', manilhas: [] });
   });
 
   it('grupo salvo antes da ordenação existir volta como livre', () => {

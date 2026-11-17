@@ -1,4 +1,5 @@
 import type { Rank, Suit } from './cards';
+import type { ManilhaConfig } from './manilha';
 import type { PileSort } from './pileOrder';
 
 // ---------------------------------------------------------------------------
@@ -60,6 +61,8 @@ export interface RoomState {
   players: Record<string, PlayerState>;
   cards: Record<string, CardState>;
   piles: Record<string, PileState>;
+  /** Ordem de manilha da sala, usada pelos leques ordenados "por manilha". */
+  manilha: ManilhaConfig;
   /** Última ação aplicada. Alimenta sons, partículas e origem das animações. */
   last: ActionEvent | null;
 }
@@ -82,6 +85,8 @@ export type Action =
   | { type: 'movePile'; pileId: string; x: number; y: number }
   | { type: 'setPileMode'; pileId: string; mode: PileMode }
   | { type: 'setPileSort'; pileId: string; sort: PileSort }
+  /** Predefinições são recalculadas pelo motor; só "custom" usa as listas enviadas. */
+  | { type: 'setManilha'; config: ManilhaConfig }
   /** Leva o grupo inteiro de uma vez, como se fosse uma carta só. */
   | { type: 'sendPile'; pileId: string; to: PileDestination }
   | { type: 'shuffleDeck' }
@@ -184,6 +189,7 @@ export interface RoomView {
   deckCount: number;
   cards: CardView[];
   piles: PileState[];
+  manilha: ManilhaConfig;
   last: ActionEvent | null;
 }
 

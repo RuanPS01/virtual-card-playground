@@ -512,6 +512,61 @@
     }
   }
 
+  /* Carta em miniatura (valor e naipe) para listas e prévias. */
+  .card-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 26px;
+    height: 26px;
+    justify-content: center;
+    padding: 0 6px;
+    font-size: 15px;
+    font-weight: 700;
+    color: hsl(var(--pc-ink));
+    border: 2px solid hsl(var(--pc-edge));
+    border-radius: 6px;
+    background: hsl(var(--pc-paper));
+  }
+
+  .card-chip[data-red='true'] {
+    color: hsl(var(--pc-red));
+  }
+
+  .card-chip[data-strong='true'] {
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+  }
+
+  /* Item tocável de uma lista ordenável ou de escolha (vira). */
+  .order-item {
+    border-radius: 9px;
+    padding: 2px;
+    border: 2px solid transparent;
+    transition: transform 80ms;
+  }
+
+  .order-item[aria-selected='true'] {
+    border-color: hsl(var(--primary));
+    transform: translateY(-2px);
+  }
+
+  /* Opção de predefinição (ordem de manilha). */
+  .preset-option {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+    text-align: left;
+    border: 2px solid hsl(var(--border));
+    border-radius: 10px;
+    background: hsl(var(--card));
+  }
+
+  .preset-option[aria-checked='true'] {
+    border-color: hsl(var(--primary));
+    background: hsl(var(--accent));
+  }
+
   /* ------------------------------------------------------------------------
      Mesa
      ------------------------------------------------------------------------ */

@@ -8,7 +8,7 @@ import type { ActionEvent, PlayerView, RoomView } from '@shared/types';
 import type { StageMetrics } from '@/game/layout';
 import { pileKey, type FxApi } from '@/game/stage';
 import type { StageTargets } from '@/game/targets';
-import { t } from '@/lib/i18n';
+import { t, type MessageKey } from '@/lib/i18n';
 import { sfx } from '@/lib/sfx';
 
 interface World {
@@ -74,6 +74,14 @@ const play = (event: ActionEvent, { view, metrics, targets }: World, fx: FxApi):
     case 'movePile':
       sfx.drop();
       break;
+    case 'setManilha': {
+      sfx.flip();
+      // A ordem muda os leques de todo mundo: todos precisam saber quem mudou.
+      const preset = t(`manilha.preset.${view.manilha.preset}` as MessageKey);
+      const author = view.players.find((player) => player.id === event.by)?.name ?? '';
+      toast.message(mine ? t('toast.manilhaMine', { preset }) : t('toast.manilhaOther', { name: author, preset }));
+      break;
+    }
     case 'setPileMode':
     case 'setPileSort':
       sfx.flip();

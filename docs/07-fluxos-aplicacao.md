@@ -47,7 +47,8 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Seletor Aberta/Fechada | Define como as cartas da mão e do monte chegam à mesa |
 
 Menu: adicionar baralho, remover um baralho, remover cartas do monte,
-reiniciar (tudo volta ao monte), reiniciar com um baralho original, cor da mesa
+reiniciar (tudo volta ao monte), reiniciar com um baralho original, ordem de
+manilha, cor da mesa
 (feltro verde ou vinho), adversários (leques de cartas, o padrão, ou
 etiquetas), som, idioma, ajuda, instalar app e sair. A cor da mesa também pode ser escolhida
 na tela de entrada. As duas escolhas de visual valem só para quem escolheu.
@@ -113,7 +114,7 @@ Com o grupo aberto em leque aparece, ao lado da etiqueta, o botão de ordem:
 |---|---|
 | Livre (padrão) | A ordem manual: você arrasta as cartas para onde quiser |
 | Valor | Do 2 ao Ás (Ás alto); naipe como desempate |
-| Manilha (truco) | Força do truco, do 4 ao 3 (4, 5, 6, 7, Q, J, K, A, 2, 3); empate pelo naipe das manilhas: ouros, espadas, copas, paus. Se houver 8, 9 ou 10, ficam depois do 7 |
+| Manilha (truco) | Da mais fraca à mais forte, pela ordem de manilha da sala (menu, "Ordem de manilha"). O padrão é a força do truco sem manilhas, do 4 ao 3 |
 
 Valor e manilha se atualizam sozinhos quando cartas entram ou saem. Enquanto o
 leque está ordenado, não há vaga para escolher: uma carta nova entra na
@@ -123,6 +124,27 @@ Cartas viradas para baixo ficam no fim, fora da ordenação. A ordem vale para
 a sala inteira, e a pilha (modo empilhado) sempre usa a ordem manual.
 
 ![Leque ordenado por valor](assets/leque-ordenado.webp)
+
+### Ordem de manilha
+
+No menu da mesa, "Ordem de manilha" define a força das cartas usada nos leques
+ordenados por manilha. É configuração **da sala**: vale para todos, e quem
+mudar avisa os outros ("Fulano mudou a ordem de manilha para Mineiro").
+
+| Predefinição | Manilhas (da mais fraca à mais forte) |
+|---|---|
+| Paulista sem vira (padrão) | Nenhuma: só a força do truco, do 4 ao 3 |
+| Paulista com vira | A carta acima da vira, nos quatro naipes: ouros, espadas, copas, paus (zap). Escolhe-se a vira no diálogo; depois do 3, volta ao 4 |
+| Mineiro | Pica-fumo (7 de ouros), espadilha (Ás de espadas), 7 de copas, zap (4 de paus) |
+| Gaúcho | 7 de ouros, 7 de espadas, bastião (Ás de paus), espadão (Ás de espadas) |
+| Personalizado | Você monta a ordem dos 13 valores, a dos naipes (desempate) e a lista de manilhas |
+
+Abaixo das manilhas, a força segue a ordem dos valores, com o naipe como
+desempate. No personalizado, toca-se num item e usam-se os botões "Mais
+fraca" e "Mais forte"; manilhas podem ser adicionadas e removidas. O diálogo
+mostra a prévia do resultado antes de aplicar.
+
+![Ordem de manilha personalizada](assets/ordem-de-manilha.webp)
 
 ### Levar o grupo inteiro
 
