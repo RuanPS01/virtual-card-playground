@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'reac
 import { animate, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import type { Rank, Suit } from '@shared/cards';
+import type { PileSort } from '@shared/pileOrder';
 import type { Action, ErrorCode, PlayerView, RoomView } from '@shared/types';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import RemoveCardsDialog from '@/components/RemoveCardsDialog';
@@ -127,6 +128,8 @@ const GameStage = ({ room, view }: GameStageProps) => {
     [send, onError],
   );
 
+  const onPileSort = useCallback((pileId: string, sort: PileSort) => void act({ type: 'setPileSort', pileId, sort }), [act]);
+
   const me = view.players.find((player) => player.id === view.me);
   const others = useMemo(() => view.players.filter((player) => player.id !== view.me), [view.players, view.me]);
   const opponentsView = useOpponentsView();
@@ -224,6 +227,7 @@ const GameStage = ({ room, view }: GameStageProps) => {
               exitLookup={exitLookup}
               drag={drag}
               shuffleTick={shuffleTick}
+              onPileSort={onPileSort}
             >
               <AnimatePresence>
                 {drag.reachPlayers && <PlayerReachBar players={others} view={opponentsView} hover={drag.hover} />}

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import type { PileSort } from '@shared/pileOrder';
 import type { RoomView } from '@shared/types';
 import type { CardDragApi } from '@/hooks/useCardDrag';
 import type { ExitLookup } from '@/hooks/useCardTransitions';
@@ -23,11 +24,12 @@ interface CardLayerProps {
   exitLookup: ExitLookup;
   drag: CardDragApi;
   shuffleTick: number;
+  onPileSort(pileId: string, sort: PileSort): void;
   /** Sobreposições que precisam ficar entre as cartas da mesa e a carta segurada. */
   children?: ReactNode;
 }
 
-const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTick, children }: CardLayerProps) => {
+const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTick, onPileSort, children }: CardLayerProps) => {
   const { begin, held, hover } = drag;
 
   const grabCard = useCallback((cardId: string, event: ReactPointerEvent) => begin({ kind: 'card', cardId }, event), [begin]);
@@ -106,6 +108,8 @@ const CardLayer = ({ view, metrics, targets, spawns, exitLookup, drag, shuffleTi
             z={top + 1}
             count={members.length}
             mode={pile.mode}
+            sort={pile.sort}
+            onSort={onPileSort}
             held={held.has(key)}
             highlighted={hover === key}
             holderColor={holderOf(key)?.color ?? null}

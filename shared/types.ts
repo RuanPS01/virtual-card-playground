@@ -1,4 +1,5 @@
 import type { Rank, Suit } from './cards';
+import type { PileSort } from './pileOrder';
 
 // ---------------------------------------------------------------------------
 // Estado autoritativo da sala
@@ -37,6 +38,8 @@ export interface PileState {
   y: number;
   z: number;
   mode: PileMode;
+  /** Ordem de exibição no leque. A ordem manual (order das cartas) fica guardada por baixo. */
+  sort: PileSort;
 }
 
 export interface PlayerState {
@@ -78,6 +81,9 @@ export type Action =
   | { type: 'flip'; cardId: string }
   | { type: 'movePile'; pileId: string; x: number; y: number }
   | { type: 'setPileMode'; pileId: string; mode: PileMode }
+  | { type: 'setPileSort'; pileId: string; sort: PileSort }
+  /** Leva o grupo inteiro de uma vez, como se fosse uma carta só. */
+  | { type: 'sendPile'; pileId: string; to: PileDestination }
   | { type: 'shuffleDeck' }
   | { type: 'addDeck' }
   | { type: 'removeCards'; suits: Suit[]; ranks: Rank[] }
@@ -88,6 +94,14 @@ export type Action =
   | { type: 'resetToOneDeck' }
   | { type: 'sortHand'; by: 'rank' | 'suit' }
   | { type: 'removePlayer'; playerId: string };
+
+/** Destinos de um grupo inteiro: os mesmos de uma carta, menos a posição na mesa. */
+export type PileDestination =
+  | { zone: 'deck' }
+  | { zone: 'hand'; playerId?: string }
+  | { zone: 'pile'; pileId: string }
+  /** Carta solta na mesa: ela vira a base do grupo. */
+  | { zone: 'card'; cardId: string };
 
 export type ActionType = Action['type'];
 
@@ -127,6 +141,8 @@ export interface ActionEvent {
   to?: Place;
   /** Quantidade afetada (baralho adicionado, cartas removidas). */
   count?: number;
+  /** Ids (antes da ação) das cartas movidas juntas, como as de um grupo inteiro. */
+  cardIds?: string[];
   /** Cartas que deveriam sair mas ficaram (estavam fora do monte). */
   skipped?: number;
 }

@@ -31,7 +31,11 @@ interface CardState {
   faceUp: boolean;
 }
 
-interface PileState { id: string; x: number; y: number; z: number; mode: 'fan' | 'stack' }
+interface PileState {
+  id: string; x: number; y: number; z: number;
+  mode: 'fan' | 'stack';
+  sort: 'manual' | 'rank' | 'manilha';    // ordem de exibição do leque
+}
 interface PlayerState { id: string; name: string; seat: number; connected: boolean }
 ```
 
@@ -57,6 +61,15 @@ testes verificam isso.
 - No máximo 8 jogadores e 416 cartas (8 baralhos) por sala.
 - `removeDeck` nunca tira a última cópia de uma carta (a sala mantém pelo menos
   um baralho) e só tira cartas do monte, nunca de mãos ou da mesa.
+- A ordem guardada de um grupo (`order` das cartas) é sempre a manual.
+  `sort` só muda a exibição, calculada igual por todos os clientes em
+  [`shared/pileOrder.ts`](../shared/pileOrder.ts); por isso voltar para
+  `manual` recupera a ordem manual. Cartas viradas para baixo não entram na
+  ordenação (ficam no fim), para a posição não revelar o valor. Salas salvas
+  sem `sort` voltam como `manual`.
+- `sendPile` move o grupo inteiro numa ação só: ninguém vê o grupo pela
+  metade. Ao unir grupos, o destino mantém posição, modo e ordenação, e as
+  cartas do outro entram no fim da ordem manual.
 - `resetToOneDeck` recria as 52 cartas do zero: cartas removidas voltam,
   baralhos extras saem e nenhum id antigo é reaproveitado.
 

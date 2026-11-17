@@ -55,6 +55,7 @@ Firebase com `get`, alterava a cópia e gravava a sala inteira de volta com
 | [`types.ts`](../shared/types.ts) | `RoomState`, `Action`, `RoomView`, `LiveMessage`, códigos de erro |
 | [`engine.ts`](../shared/engine.ts) | `applyAction`, `createRoomState`, `addPlayer`, `removePlayer`, `setConnected`, `normalizeState` |
 | [`view.ts`](../shared/view.ts) | `viewFor`: recorta o estado para o que um jogador pode saber |
+| [`pileOrder.ts`](../shared/pileOrder.ts) | Ordem de exibição do leque (livre, valor, manilha) |
 | [`protocol.ts`](../shared/protocol.ts) | Mensagens do WebSocket |
 
 ### server/ (tempo real autoritativo)

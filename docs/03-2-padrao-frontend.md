@@ -59,8 +59,11 @@ Qualquer elemento pode receber cartas: basta ter `data-drop`.
 | `hand` | Carta vai para a sua mão, na vaga mais próxima |
 | `deck` | Carta volta para o topo do monte |
 | `player:ID` | Carta vai para a mão daquele jogador |
-| `card:ID` | Forma um grupo com aquela carta (se os centros estiverem próximos) |
-| `pile:ID` | Carta entra naquele grupo: no topo, se em pilha; na vaga mais próxima, se em leque (também reordena dentro do próprio leque). O leque aceita a carta também pelo centro dela, com folga, mesmo que o ponteiro esteja fora |
+| `card:ID` | Forma um grupo com aquela carta (se os centros estiverem próximos). Com um grupo inteiro, a carta vira a base dele |
+| `pile:ID` | Carta entra naquele grupo: no topo, se em pilha; na vaga mais próxima, se em leque livre (também reordena dentro do próprio leque); na posição da ordenação, se em leque ordenado. O leque aceita a carta também pelo centro dela, com folga, mesmo que o ponteiro esteja fora. Com um grupo inteiro, os dois grupos se unem |
+
+Ao arrastar um grupo inteiro, vale o que está sob a etiqueta (o ponteiro), e
+os destinos `hand`, `deck` e `player:ID` recebem todas as cartas de uma vez.
 
 O controlador usa `document.elementsFromPoint`, então sobreposição, rotação e
 z-index valem exatamente como a tela mostra.

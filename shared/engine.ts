@@ -7,6 +7,7 @@
 
 import { RANKS, SUITS, isRank, isSuit, rankWeight, suitWeight } from './cards';
 import { newId } from './ids';
+import { isPileSort } from './pileOrder';
 import {
   MAX_CARDS,
   MAX_NAME_LENGTH,
@@ -229,6 +230,7 @@ const run = (state: RoomState, actorId: string, action: Action, rng: Rng): Event
             y: target.y,
             z: ++state.z,
             mode: action.mode === 'fan' ? 'fan' : 'stack',
+            sort: 'manual',
           };
           target.zone = 'pile';
           target.owner = pileId;
@@ -281,6 +283,83 @@ const run = (state: RoomState, actorId: string, action: Action, rng: Rng): Event
       pile.y = clamp01(action.y);
       pile.z = ++state.z;
       return { to: { zone: 'pile', pileId: pile.id } };
+    }
+
+    case 'setPileSort': {
+      const pile = state.piles[action.pileId];
+      if (!pile) return 'pile_not_found';
+      if (!isPileSort(action.sort)) return 'bad_action';
+      pile.sort = action.sort;
+      return { to: { zone: 'pile', pileId: pile.id } };
+    }
+
+    case 'sendPile': {
+      const pile = state.piles[action.pileId];
+      if (!pile) return 'pile_not_found';
+      const to = action.to;
+      if (!to || typeof to !== 'object') return 'bad_action';
+      const members = cardsIn(state, 'pile', pile.id);
+      const cardIds = members.map((card) => card.id);
+      const from: Place = { zone: 'pile', pileId: pile.id };
+      const count = members.length;
+
+      // Une os dois grupos: as cartas do arrastado entram no fim da ordem
+      // manual do outro, que mantém posição, modo e ordenação.
+      const mergeInto = (targetId: string): EventDraft | ErrorCode => {
+        const target = state.piles[targetId];
+        if (!target || target.id === pile.id) return 'pile_not_found';
+        let order = cardsIn(state, 'pile', target.id).length;
+        for (const card of members) {
+          card.owner = target.id;
+          card.order = order++;
+        }
+        target.z = ++state.z;
+        delete state.piles[pile.id];
+        return { cardIds, from, to: { zone: 'pile', pileId: target.id }, count };
+      };
+
+      switch (to.zone) {
+        case 'deck': {
+          // Vão para o topo do monte na ordem do grupo, viradas e com id novo.
+          let order = cardsIn(state, 'deck').length;
+          for (const card of members) sendToDeck(state, card, order++, rng);
+          delete state.piles[pile.id];
+          return { cardIds, from, to: { zone: 'deck' }, count };
+        }
+        case 'hand': {
+          const playerId = to.playerId ?? actorId;
+          if (!state.players[playerId]) return 'player_not_found';
+          let order = cardsIn(state, 'hand', playerId).length;
+          for (const card of members) {
+            card.zone = 'hand';
+            card.owner = playerId;
+            card.order = order++;
+            card.faceUp = true;
+          }
+          delete state.piles[pile.id];
+          return { cardIds, from, to: { zone: 'hand', playerId }, count };
+        }
+        case 'pile':
+          return mergeInto(to.pileId);
+        case 'card': {
+          const target = state.cards[to.cardId];
+          if (!target) return 'card_not_found';
+          // O alvo entrou em um grupo enquanto a mensagem viajava: une com ele.
+          if (target.zone === 'pile' && target.owner && target.owner !== pile.id) return mergeInto(target.owner);
+          if (target.zone !== 'table') return 'card_not_found';
+          // A carta solta vira a base do grupo, e o grupo vai para onde ela está.
+          target.zone = 'pile';
+          target.owner = pile.id;
+          target.order = -1;
+          renumber(cardsIn(state, 'pile', pile.id));
+          pile.x = target.x;
+          pile.y = target.y;
+          pile.z = ++state.z;
+          return { cardIds, from, to: { zone: 'pile', pileId: pile.id }, count: count + 1 };
+        }
+        default:
+          return 'bad_action';
+      }
     }
 
     case 'setPileMode': {
@@ -505,7 +584,15 @@ export const normalizeState = (raw: unknown): RoomState | null => {
   }
   for (const [id, value] of Object.entries(asRecord(root.piles))) {
     const pile = asRecord(value);
-    state.piles[id] = { id, x: num(pile.x, 0.5), y: num(pile.y, 0.5), z: num(pile.z), mode: pile.mode === 'fan' ? 'fan' : 'stack' };
+    state.piles[id] = {
+      id,
+      x: num(pile.x, 0.5),
+      y: num(pile.y, 0.5),
+      z: num(pile.z),
+      mode: pile.mode === 'fan' ? 'fan' : 'stack',
+      // Salas criadas antes da ordenação existir não têm o campo.
+      sort: isPileSort(pile.sort) ? pile.sort : 'manual',
+    };
   }
   for (const [id, value] of Object.entries(asRecord(root.cards))) {
     const c = asRecord(value);

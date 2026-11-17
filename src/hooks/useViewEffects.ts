@@ -75,9 +75,32 @@ const play = (event: ActionEvent, { view, metrics, targets }: World, fx: FxApi):
       sfx.drop();
       break;
     case 'setPileMode':
+    case 'setPileSort':
       sfx.flip();
       if (event.to?.zone === 'pile') fx.pop(pileKey(event.to.pileId));
       break;
+    case 'sendPile': {
+      const count = event.count ?? 0;
+      if (event.to?.zone === 'deck') {
+        sfx.shuffle();
+        fx.text(deck.x, deck.y - cardH * 0.62, `+${count}`, 'blue');
+      } else if (event.to?.zone === 'hand') {
+        sfx.deal();
+        if (event.to.playerId !== view.me) {
+          const at = badgeBottom(event.to.playerId);
+          if (at) fx.text(at.x, at.y, `+${count}`, 'gold');
+        } else {
+          // Cada carta "assenta" na mão, uma depois da outra.
+          event.cardIds?.forEach((id, index) => setTimeout(() => fx.pop(id), 200 + index * 45));
+        }
+      } else if (event.to?.zone === 'pile') {
+        sfx.stack();
+        const pile = targets?.piles.get(event.to.pileId);
+        if (pile) fx.burst(pile.cx, pile.cy, 'spark');
+        fx.pop(pileKey(event.to.pileId));
+      }
+      break;
+    }
     case 'shuffleDeck':
       sfx.shuffle();
       fx.shake(0.6);

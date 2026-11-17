@@ -31,7 +31,13 @@ Cada aba tem a sua sessão: duas abas no mesmo navegador são dois jogadores.
 | Soltar carta sobre um grupo em pilha | Entra no topo do grupo |
 | Soltar carta sobre um grupo em leque | Entra na posição onde for solta; uma vaga se abre no leque para mostrar onde |
 | Arrastar uma carta dentro do leque | Reordena o grupo, como na mão (qualquer jogador pode, o grupo está na mesa) |
-| Arrastar a etiqueta do grupo | Move o grupo inteiro |
+| Arrastar a etiqueta do grupo pela mesa | Move o grupo inteiro |
+| Soltar a etiqueta do grupo sobre o monte | O grupo inteiro volta para o topo do monte |
+| Soltar a etiqueta do grupo na sua mão | Todas as cartas do grupo vão para o fim da sua mão |
+| Soltar a etiqueta do grupo sobre um jogador | Todas as cartas vão para a mão dele (a barra ampliada também aparece) |
+| Soltar a etiqueta do grupo sobre outro grupo | Os dois grupos se unem |
+| Soltar a etiqueta do grupo sobre uma carta solta | A carta vira a base do grupo, e o grupo vai para onde ela está |
+| Botão ao lado da etiqueta (só no leque) | Escolhe a ordem do leque: livre, valor ou manilha |
 | Tocar na etiqueta do grupo | Alterna pilha e leque |
 | Arrastar carta de um grupo para fora dele | Tira a carta do grupo; as outras se juntam |
 | Levar a carta até o topo da tela | A barra de jogadores aparece ampliada, com alvos grandes |
@@ -98,6 +104,33 @@ dedo: quem segura a carta pela borda no celular continua acertando o leque.
 Em pilha não há posição visível, então a carta sempre entra no topo.
 
 ![Vaga aberta no leque durante o arrasto](assets/leque-reordenando.webp)
+
+### Ordem do leque
+
+Com o grupo aberto em leque aparece, ao lado da etiqueta, o botão de ordem:
+
+| Opção | Ordem |
+|---|---|
+| Livre (padrão) | A ordem manual: você arrasta as cartas para onde quiser |
+| Valor | Do 2 ao Ás (Ás alto); naipe como desempate |
+| Manilha (truco) | Força do truco, do 4 ao 3 (4, 5, 6, 7, Q, J, K, A, 2, 3); empate pelo naipe das manilhas: ouros, espadas, copas, paus. Se houver 8, 9 ou 10, ficam depois do 7 |
+
+Valor e manilha se atualizam sozinhos quando cartas entram ou saem. Enquanto o
+leque está ordenado, não há vaga para escolher: uma carta nova entra na
+posição da ordenação. Voltar para "Livre" recupera a ordem manual, com as
+cartas que entraram nesse meio tempo no fim, e o arrasto livre volta a valer.
+Cartas viradas para baixo ficam no fim, fora da ordenação. A ordem vale para
+a sala inteira, e a pilha (modo empilhado) sempre usa a ordem manual.
+
+![Leque ordenado por valor](assets/leque-ordenado.webp)
+
+### Levar o grupo inteiro
+
+A etiqueta do grupo funciona como uma carta grande: o destino é o que estiver
+embaixo dela ao soltar. As cartas vão juntas, numa ação só. Ao passar sobre um
+jogador, o grupo fica translúcido para o nome aparecer.
+
+![Grupo levado até um jogador pela barra ampliada](assets/grupo-para-jogador.webp)
 
 ## 7.4 Ciclo de uma ação
 
